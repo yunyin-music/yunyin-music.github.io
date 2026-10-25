@@ -580,11 +580,9 @@ function renderSongs(){
 }
 
 /* ---------- Playback ---------- */
-let tryingAlt = false;
 function playSong(idx){
   if(idx<0||idx>=songs.length) return;
   currentIdx = idx;
-  tryingAlt = false;
   const s = songs[idx];
   pTitle.textContent = s.name;
   pArtist.textContent = s.artist;
@@ -593,8 +591,8 @@ function playSong(idx){
   audio.play().then(()=>{
     setPlaying(true);
   }).catch(err=>{
-    // try alternative source before skipping
-    tryAltSource(idx);
+    toast("播放失败，自动切换下一首");
+    setTimeout(()=>nextSong(),800);
   });
   // update row highlight
   document.querySelectorAll(".song-row").forEach((e,i)=>e.classList.toggle("playing",i===idx));
@@ -603,117 +601,6 @@ function playSong(idx){
   // scroll into view
   const row = songListEl.querySelector(`.song-row[data-idx="${idx}"]`);
   if(row) row.scrollIntoView({behavior:"smooth",block:"nearest"});
-}
-
-/* ---------- Multi-source fallback ---------- */
-const CORS_PROXIES = [
-  (u)=>`https://cors.eu.org/${u}`,
-  (u)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  (u)=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
-];
-
-async function fetchViaProxy(url){
-  for(const proxy of CORS_PROXIES){
-    try{
-      const res = await fetch(proxy(url), {cache:"no-store"});
-      if(res.ok){
-        const text = await res.text();
-        try { return JSON.parse(text); } catch(e){ return text; }
-      }
-    }catch(e){}
-  }
-  return null;
-}
-
-// Check if a URL is playable (not 30s preview, not error)
-function checkPlayable(url){
-  return new Promise((resolve)=>{
-    const a = new Audio();
-    a.preload = "metadata";
-    let done = false;
-    const finish = (ok)=>{ if(!done){ done=true; a.src=""; resolve(ok); } };
-    a.addEventListener("canplay", ()=>{
-      const d = a.duration;
-      // reject if it's a ~30s preview (VIP preview) or 0
-      if(isFinite(d) && d > 31) finish(true);
-      else if(isFinite(d) && d > 0 && d <= 31) finish(false);
-      else finish(true); // unknown duration, try anyway
-    });
-    a.addEventListener("error", ()=>finish(false));
-    a.addEventListener("stalled", ()=>finish(false));
-    a.src = url;
-    setTimeout(()=>finish(false), 8000);
-  });
-}
-
-// Search QQ Music and find a playable URL for the song
-async function findQQSource(name, artist){
-  const keyword = artist ? `${name} ${artist}` : name;
-  const data = await fetchViaProxy(`https://c.y.qq.com/soso/fcgi-bin/client_search_cp?w=${encodeURIComponent(keyword)}&format=json&n=8&p=1`);
-  if(!data || !data.data || !data.data.song || !data.data.song.list) return null;
-  const list = data.data.song.list;
-  for(const item of list){
-    const songmid = item.songmid;
-    if(!songmid) continue;
-    // match song name roughly
-    const sname = item.songname || item.name || "";
-    if(name && !sname.includes(name) && !name.includes(sname)) continue;
-    const url = `${API}?type=url&id=${songmid}&server=tencent`;
-    const ok = await checkPlayable(url);
-    if(ok){
-      return { url, name: sname, artist: (item.singer||[]).map(s=>s.name).join("/") };
-    }
-  }
-  return null;
-}
-
-// Search Migu Music and find playable URL
-async function findMiguSource(name, artist){
-  const keyword = artist ? `${name} ${artist}` : name;
-  // Migu search via proxy
-  const data = await fetchViaProxy(`https://m.music.migu.cn/migu/remoting/scr_search_tag?keyword=${encodeURIComponent(keyword)}&type=2&rows=8`);
-  if(!data || !data.musics) return null;
-  for(const m of data.musics){
-    const contentId = m.id || m.copyrightId;
-    const songName = m.songName || m.title || "";
-    if(name && !songName.includes(name) && !name.includes(songName)) continue;
-    if(!contentId) continue;
-    // Migu play URL via Meting (if migu server works) or direct
-    const url = `${API}?type=url&id=${contentId}&server=migu`;
-    const ok = await checkPlayable(url);
-    if(ok) return { url, name: songName, artist: m.singerName || m.artist || "" };
-  }
-  return null;
-}
-
-// Main fallback: try QQ then Migu
-async function tryAltSource(idx){
-  if(tryingAlt) return;
-  tryingAlt = true;
-  const s = songs[idx];
-  if(!s) { tryingAlt=false; return; }
-  toast(`正在为「${s.name}」寻找可播放资源...`);
-  // Try QQ Music first
-  let alt = await findQQSource(s.name, s.artist);
-  // Then Migu
-  if(!alt) alt = await findMiguSource(s.name, s.artist);
-  if(alt){
-    songs[idx].url = alt.url;
-    if(alt.name) songs[idx].name = alt.name;
-    if(alt.artist) songs[idx].artist = alt.artist;
-    toast(`已切换至可播放版本`);
-    pTitle.textContent = songs[idx].name;
-    pArtist.textContent = songs[idx].artist;
-    audio.src = alt.url;
-    audio.play().then(()=>setPlaying(true)).catch(()=>{
-      toast("播放失败，跳过");
-      setTimeout(()=>nextSong(),800);
-    });
-  }else{
-    toast("未找到可播放版本，跳过");
-    setTimeout(()=>nextSong(),1000);
-  }
-  tryingAlt = false;
 }
 
 function setPlaying(playing){
@@ -781,19 +668,24 @@ audio.addEventListener("ended",()=>{
   if(playMode===1){ audio.currentTime=0; audio.play(); }
   else nextSong();
 });
+// 播放出错：跳到下一首（连续失败过多则停止，避免死循环）
+let skipCount = 0;
+audio.addEventListener("playing",()=>{ skipCount = 0; });
 audio.addEventListener("error",()=>{
-  if(!tryingAlt){
-    tryAltSource(currentIdx);
-  }
+  if(skipCount >= 5){ toast("多首歌曲连续播放失败，请检查网络"); return; }
+  skipCount++;
+  toast("播放失败，自动切换下一首");
+  setTimeout(()=>nextSong(),800);
 });
-// Detect 30s VIP preview and switch source
+// 检测 30 秒 VIP 试听版（网易云 VIP 歌曲无法播放完整版）
 audio.addEventListener("loadedmetadata",()=>{
-  if(tryingAlt) return;
   const d = audio.duration;
   if(isFinite(d) && d > 0 && d <= 31){
-    // likely a VIP 30s preview
-    toast("检测到试听版，正在切换完整源...");
-    tryAltSource(currentIdx);
+    toast("该歌曲为VIP试听版，已自动跳过");
+    if(skipCount < 5){
+      skipCount++;
+      setTimeout(()=>nextSong(),800);
+    }
   }
 });
 
