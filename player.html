@@ -256,6 +256,8 @@
   }
   .vinyl img{position:absolute;inset:13px;border-radius:50%;object-fit:cover}
   .vinyl.spinning{animation:spin 8s linear infinite;box-shadow:0 4px 14px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.06),0 0 14px var(--accent-glow)}
+  .p-left .vinyl{cursor:pointer;transition:box-shadow .25s}
+  .p-left .vinyl:hover{box-shadow:0 4px 14px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.1),0 0 16px var(--accent-glow)}
   .p-info{min-width:0}
   .p-info .t{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .p-info .a{font-size:11.5px;color:var(--text-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -386,6 +388,117 @@
   .q-row:hover .qx{opacity:1}
   .q-row .qx:hover{color:var(--danger)}
 
+  /* ---------- Play page (vinyl + lyrics + comments) ---------- */
+  .playpage{
+    position:fixed;top:14px;left:14px;right:14px;bottom:92px;
+    background:#0b0b0d;border-radius:var(--radius);
+    border:1px solid var(--border);
+    transform:translateY(calc(100% + 110px));
+    transition:transform .5s cubic-bezier(.4,0,.2,1);
+    z-index:80;display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .playpage.open{transform:translateY(0)}
+  .pp-bg{position:absolute;inset:0;z-index:0}
+  .pp-bg img{width:100%;height:100%;object-fit:cover;filter:blur(90px) brightness(.4) saturate(1.3);transform:scale(1.3)}
+  .pp-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,11,13,.55),rgba(11,11,13,.85))}
+  .pp-head{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
+  .pp-collapse{
+    position:absolute;left:14px;top:50%;transform:translateY(-50%);
+    background:var(--glass-2);border:none;color:var(--text-2);
+    width:36px;height:36px;border-radius:50%;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:.2s;
+  }
+  .pp-collapse:hover{color:var(--text);background:rgba(255,255,255,.1)}
+  .pp-head-info{text-align:center;min-width:0;max-width:70%}
+  .pp-head-info .t{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pp-head-info .a{font-size:12px;color:var(--text-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pp-body{position:relative;z-index:2;flex:1;display:flex;align-items:center;gap:5vw;padding:24px 6vw;min-height:0}
+  .pp-disc-wrap{position:relative;width:min(360px,34vw);flex-shrink:0}
+  .pp-disc{
+    position:relative;width:100%;aspect-ratio:1;border-radius:50%;
+    background:
+      radial-gradient(circle,#0a0a0c 0 19%,transparent 19%),
+      repeating-radial-gradient(circle,#131316 0 1.5px,#1c1c21 1.5px 3.5px),
+      #101013;
+    box-shadow:0 24px 70px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.06);
+    display:flex;align-items:center;justify-content:center;
+    animation:ppspin 26s linear infinite;animation-play-state:paused;
+  }
+  .playpage.playing .pp-disc{animation-play-state:running}
+  @keyframes ppspin{to{transform:rotate(360deg)}}
+  .pp-cover{
+    width:62%;aspect-ratio:1;border-radius:50%;overflow:hidden;
+    box-shadow:0 0 0 5px rgba(0,0,0,.6),0 0 0 6px rgba(255,255,255,.07),0 10px 30px rgba(0,0,0,.5);
+  }
+  .pp-cover img{width:100%;height:100%;object-fit:cover}
+  .pp-spindle{
+    position:absolute;left:50%;top:50%;width:12px;height:12px;
+    transform:translate(-50%,-50%);border-radius:50%;
+    background:#0a0a0c;box-shadow:0 0 0 2px rgba(255,255,255,.12);z-index:3;
+  }
+  .pp-disc-sheen{
+    position:absolute;inset:0;border-radius:50%;pointer-events:none;z-index:2;
+    background:linear-gradient(135deg,rgba(255,255,255,.09),transparent 38%,transparent 62%,rgba(255,255,255,.05));
+  }
+  .pp-arm{
+    position:absolute;top:-8%;right:-4%;width:130px;height:230px;z-index:6;
+    transform-origin:34px 34px;transform:rotate(-32deg);
+    transition:transform .6s cubic-bezier(.34,1.2,.4,1);
+  }
+  .playpage.playing .pp-arm{transform:rotate(0deg)}
+  .pp-arm-base{
+    position:absolute;top:0;left:0;width:34px;height:34px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#4a4a52,#17171b 75%);
+    box-shadow:0 6px 14px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.2);
+  }
+  .pp-arm-rod{
+    position:absolute;top:16px;left:15px;width:5px;height:150px;border-radius:3px;
+    background:linear-gradient(180deg,#3a3a41,#202024);
+    transform:rotate(18deg);transform-origin:top center;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  .pp-arm-head{
+    position:absolute;top:156px;left:52px;width:18px;height:34px;border-radius:5px;
+    background:linear-gradient(180deg,#3d3d45,#1b1b20);
+    box-shadow:0 3px 8px rgba(0,0,0,.5);
+  }
+  .pp-right{flex:1;min-width:0;height:100%;display:flex;flex-direction:column}
+  .pp-tabs{display:flex;gap:22px;padding:0 6px 10px;border-bottom:1px solid rgba(255,255,255,.06)}
+  .pp-tab{
+    background:none;border:none;color:var(--text-3);font-size:14px;font-weight:600;
+    cursor:pointer;padding:4px 2px;position:relative;transition:.2s;letter-spacing:1px;
+  }
+  .pp-tab .cnt{font-size:11px;color:var(--text-3);font-weight:400;margin-left:3px}
+  .pp-tab:hover{color:var(--text-2)}
+  .pp-tab.active{color:var(--text)}
+  .pp-tab.active::after{
+    content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:-11px;
+    width:20px;height:3px;border-radius:3px;background:var(--accent);box-shadow:0 0 8px var(--accent-glow);
+  }
+  .pp-pane{flex:1;min-height:0}
+  .pp-pane.hidden{display:none}
+  .pp-lyrics{height:100%;overflow:hidden;position:relative;padding:35% 6px;text-align:center}
+  .pp-lyrics::before,.pp-lyrics::after{content:"";position:absolute;left:0;right:0;height:22%;pointer-events:none;z-index:2}
+  .pp-lyrics::before{top:0;background:linear-gradient(180deg,rgba(11,11,13,.9),transparent)}
+  .pp-lyrics::after{bottom:0;background:linear-gradient(0deg,rgba(11,11,13,.9),transparent)}
+  .pp-cmt-scroll{height:100%;overflow-y:auto;padding:6px 8px 30px}
+  .pp-cmt-scroll::-webkit-scrollbar{width:6px}
+  .pp-cmt-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
+  .pp-cmt-sec{font-size:13px;font-weight:700;color:var(--text);padding:16px 4px 4px;letter-spacing:1px}
+  .pp-cmt-sec .sec-cnt{font-size:11px;color:var(--text-3);font-weight:400;margin-left:6px}
+  .pp-cmt{display:flex;gap:12px;padding:14px 4px;border-bottom:1px solid rgba(255,255,255,.05)}
+  .pp-cmt:last-child{border-bottom:none}
+  .pp-cmt .ava{
+    width:34px;height:34px;border-radius:50%;object-fit:cover;
+    background:var(--bg-2);flex-shrink:0;box-shadow:0 0 0 1px var(--border);
+  }
+  .pp-cmt .cbody{flex:1;min-width:0}
+  .pp-cmt .nm{font-size:12px;color:var(--text-3)}
+  .pp-cmt .ct{font-size:13.5px;color:var(--text);line-height:1.7;margin-top:4px;white-space:pre-wrap;word-break:break-word}
+  .pp-cmt .ft{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;color:var(--text-3)}
+  .pp-cmt .like{display:inline-flex;align-items:center;gap:4px}
+
   /* ---------- responsive ---------- */
   @media (max-width:900px){
     .app{grid-template-columns:1fr}
@@ -393,6 +506,11 @@
     .main{grid-column:1}
     .player{grid-template-columns:auto 1fr}
     .p-center{display:none}
+    .pp-body{flex-direction:column;gap:16px;padding:22px 18px;overflow-y:auto;align-items:stretch}
+    .pp-disc-wrap{width:min(250px,58vw);margin:2px auto 0}
+    .pp-right{height:60vh;flex:none}
+    .pp-arm{scale:.7}
+    .pp-lyrics{padding:20% 6px}
   }
   .toast{
     position:fixed;bottom:110px;left:50%;transform:translateX(-50%) translateY(20px);
@@ -515,6 +633,9 @@
     </div>
 
     <div class="p-right">
+      <button class="lyrics-toggle" id="ppOpenBtn" title="播放页">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg>
+      </button>
       <button class="lyrics-toggle" id="queueToggle" title="当前播放">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="13" y2="6"/><line x1="3" y1="12" x2="13" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/><path d="M16 18a2 2 0 1 0 4 0V7l3 2"/></svg>
       </button>
@@ -554,6 +675,48 @@
     </div>
   </div>
   <div class="q-list" id="qList"></div>
+</div>
+
+<!-- Play page: vinyl + lyrics + comments -->
+<div class="playpage" id="playPage">
+  <div class="pp-bg"><img id="ppBgImg" src="" alt=""/></div>
+  <div class="pp-head">
+    <button class="pp-collapse" id="ppClose" title="收起">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="pp-head-info">
+      <div class="t" id="ppTitle">未在播放</div>
+      <div class="a" id="ppArtist">点击左下角唱片，展开沉浸播放页</div>
+    </div>
+  </div>
+  <div class="pp-body">
+    <div class="pp-disc-wrap">
+      <div class="pp-arm">
+        <div class="pp-arm-base"></div>
+        <div class="pp-arm-rod"></div>
+        <div class="pp-arm-head"></div>
+      </div>
+      <div class="pp-disc">
+        <div class="pp-cover"><img id="ppCover" src="" alt=""/></div>
+        <div class="pp-spindle"></div>
+      </div>
+      <div class="pp-disc-sheen"></div>
+    </div>
+    <div class="pp-right">
+      <div class="pp-tabs">
+        <button class="pp-tab active" id="ppTabLrc">歌词</button>
+        <button class="pp-tab" id="ppTabCmt">评论<span class="cnt" id="ppCmtCount"></span></button>
+      </div>
+      <div class="pp-pane" id="ppPaneLrc">
+        <div class="pp-lyrics">
+          <div class="lrc-track" id="ppLrcTrack"><div class="lrc-empty">暂无歌词</div></div>
+        </div>
+      </div>
+      <div class="pp-pane hidden" id="ppPaneCmt">
+        <div class="pp-cmt-scroll" id="ppCmtList"><div class="lrc-empty">选择一首歌曲查看评论</div></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -815,6 +978,7 @@ async function playSong(idx){
   pTitle.textContent = s.name;
   pArtist.textContent = s.artist;
   pCover.src = s.pic || "";
+  updatePlayPage(s);
   // 记录历史 / 保存状态 / 更新收藏心 / 系统媒体信息 / 标签页标题
   recordHistory(s);
   saveState(s, 0);
@@ -924,12 +1088,14 @@ audio.addEventListener("loadedmetadata",()=>{
 });
 audio.addEventListener("play",()=>{
   setPlaying(true);
+  syncPlayPageState();
   try{ if('mediaSession' in navigator) navigator.mediaSession.playbackState = "playing"; }catch(e){}
   const s = songs[currentIdx];
   if(s) document.title = `▶ ${s.name} - ${s.artist} | 云音播放器`;
 });
 audio.addEventListener("pause",()=>{
   setPlaying(false);
+  syncPlayPageState();
   try{ if('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused"; }catch(e){}
   document.title = BASE_TITLE;
 });
@@ -1031,16 +1197,21 @@ document.addEventListener("keydown",(e)=>{
   else if(e.code==="ArrowUp"){e.preventDefault();applyVolume(Math.min(1,audio.volume+0.05));}
   else if(e.code==="ArrowDown"){e.preventDefault();applyVolume(Math.max(0,audio.volume-0.05));}
   else if(e.code==="Escape"){
-    if(currentQueueOpen){ currentQueueOpen=false; queuePanel.classList.remove("open"); }
+    if(playPage.classList.contains("open")){ playPage.classList.remove("open"); }
+    else if(currentQueueOpen){ currentQueueOpen=false; queuePanel.classList.remove("open"); }
     else if(lyricsPanel.classList.contains("open")){ lyricsPanel.classList.remove("open"); lrcToggle.classList.remove("active"); }
   }
 });
 
 /* ---------- Lyrics ---------- */
+function setLrcHtml(html){
+  lrcTrack.innerHTML = html;
+  ppLrcTrack.innerHTML = html;
+}
 async function loadLyrics(song){
   lyrics = [];
-  lrcTrack.innerHTML = '<div class="lrc-empty">加载歌词中...</div>';
-  if(!song || !song.id){ lrcTrack.innerHTML='<div class="lrc-empty">暂无歌词</div>'; return; }
+  setLrcHtml('<div class="lrc-empty">加载歌词中...</div>');
+  if(!song || !song.id){ setLrcHtml('<div class="lrc-empty">暂无歌词</div>'); return; }
   let text = null;
   // GD Studio 优先
   try{
@@ -1059,7 +1230,7 @@ async function loadLyrics(song){
   if(text && text.trim()){
     parseLrc(text);
   }else{
-    lrcTrack.innerHTML = '<div class="lrc-empty">纯音乐 · 暂无歌词</div>';
+    setLrcHtml('<div class="lrc-empty">纯音乐 · 暂无歌词</div>');
   }
 }
 function parseLrc(text){
@@ -1077,8 +1248,9 @@ function parseLrc(text){
   }
   arr.sort((a,b)=>a.t-b.t);
   lyrics = arr;
-  if(!arr.length){ lrcTrack.innerHTML='<div class="lrc-empty">暂无歌词</div>'; return; }
-  lrcTrack.innerHTML = arr.map(l=>`<div class="lrc-line">${l.content}</div>`).join("");
+  if(!arr.length){ setLrcHtml('<div class="lrc-empty">暂无歌词</div>'); return; }
+  const html = arr.map(l=>`<div class="lrc-line">${l.content}</div>`).join("");
+  setLrcHtml(html);
   lastLrcIdx = -1;
   updateLyrics(audio.currentTime);
 }
@@ -1090,23 +1262,31 @@ function updateLyrics(cur){
   }
   if(idx===lastLrcIdx) return;
   lastLrcIdx = idx;
-  const lines = lrcTrack.querySelectorAll(".lrc-line");
+  syncLrcTrack(lrcTrack, idx);
+  syncLrcTrack(ppLrcTrack, idx);
+}
+function syncLrcTrack(track, idx){
+  const lines = track.querySelectorAll(".lrc-line");
   lines.forEach((l,i)=>l.classList.toggle("active",i===idx));
   if(idx>=0 && lines[idx]){
-    const offset = lines[idx].offsetTop - lrcTrack.parentElement.clientHeight/2 + lines[idx].clientHeight/2;
-    lrcTrack.style.transform = `translateY(${-offset}px)`;
+    const vp = track.parentElement;
+    const offset = lines[idx].offsetTop - vp.clientHeight/2 + lines[idx].clientHeight/2;
+    track.style.transform = `translateY(${-offset}px)`;
   }
 }
-// 歌词点击跳转进度
-lrcTrack.addEventListener("click",(e)=>{
-  const line = e.target.closest(".lrc-line");
-  if(!line) return;
-  const idx = Array.from(lrcTrack.children).indexOf(line);
-  if(idx>=0 && lyrics[idx] && isFinite(lyrics[idx].t) && lyrics[idx].t > 0){
-    audio.currentTime = lyrics[idx].t;
-    if(audio.paused) audio.play();
-  }
-});
+// 歌词点击跳转进度（侧边面板 + 播放页）
+function bindLrcClick(track){
+  track.addEventListener("click",(e)=>{
+    const line = e.target.closest(".lrc-line");
+    if(!line) return;
+    const idx = Array.from(track.children).indexOf(line);
+    if(idx>=0 && lyrics[idx] && isFinite(lyrics[idx].t) && lyrics[idx].t > 0){
+      audio.currentTime = lyrics[idx].t;
+      if(audio.paused) audio.play();
+    }
+  });
+}
+bindLrcClick(lrcTrack);
 lrcToggle.addEventListener("click",()=>{
   lyricsPanel.classList.toggle("open");
   lrcToggle.classList.toggle("active");
@@ -1420,6 +1600,150 @@ qClear.addEventListener("click",()=>{
   renderQueue();
   toast("队列已清空");
 });
+
+/* ---------- Play page: vinyl + lyrics + comments ---------- */
+const playPage = document.getElementById("playPage");
+const ppBgImg = document.getElementById("ppBgImg");
+const ppTitle = document.getElementById("ppTitle");
+const ppArtist = document.getElementById("ppArtist");
+const ppCover = document.getElementById("ppCover");
+const ppLrcTrack = document.getElementById("ppLrcTrack");
+const ppTabLrc = document.getElementById("ppTabLrc");
+const ppTabCmt = document.getElementById("ppTabCmt");
+const ppCmtCount = document.getElementById("ppCmtCount");
+const ppPaneLrc = document.getElementById("ppPaneLrc");
+const ppPaneCmt = document.getElementById("ppPaneCmt");
+const ppCmtList = document.getElementById("ppCmtList");
+const ppClose = document.getElementById("ppClose");
+const ppOpenBtn = document.getElementById("ppOpenBtn");
+let ppTab = "lrc";
+let cmtSongId = null;
+const cmtCache = new Map();
+// 网易官方评论接口经 CORS 代理获取（评论区数据实时来自网易，本站不存储）
+const CMT_PROXIES = [
+  (u)=>`https://cors.eu.org/${u}`,
+  (u)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  (u)=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+];
+
+function openPlayPage(){
+  playPage.classList.add("open");
+  const s = songs[currentIdx];
+  if(s) updatePlayPage(s);
+  syncPlayPageState();
+  if(ppTab==="cmt" && s) loadComments(s);
+}
+function closePlayPage(){ playPage.classList.remove("open"); }
+function syncPlayPageState(){
+  playPage.classList.toggle("playing", currentIdx>=0 && !audio.paused);
+}
+ppClose.addEventListener("click",closePlayPage);
+ppOpenBtn.addEventListener("click",openPlayPage);
+vinyl.addEventListener("click",openPlayPage);
+bindLrcClick(ppLrcTrack);
+
+function updatePlayPage(s){
+  ppTitle.textContent = s.name;
+  ppArtist.textContent = s.artist;
+  ppCover.src = s.pic || "";
+  ppBgImg.src = s.pic || "";
+  if(cmtSongId !== s.id){
+    ppCmtList.dataset.done = "0";
+    ppCmtCount.textContent = "";
+  }
+}
+function switchPpTab(t){
+  ppTab = t;
+  ppTabLrc.classList.toggle("active",t==="lrc");
+  ppTabCmt.classList.toggle("active",t==="cmt");
+  ppPaneLrc.classList.toggle("hidden",t!=="lrc");
+  ppPaneCmt.classList.toggle("hidden",t!=="cmt");
+  if(t==="cmt"){
+    const s = songs[currentIdx];
+    if(s) loadComments(s);
+  }else{
+    // 切回歌词时重新定位当前行
+    lastLrcIdx = -1;
+    updateLyrics(audio.currentTime);
+  }
+}
+ppTabLrc.addEventListener("click",()=>switchPpTab("lrc"));
+ppTabCmt.addEventListener("click",()=>switchPpTab("cmt"));
+
+/* ---------- Comments (NetEase) ---------- */
+function escHtml(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function cmtLike(n){
+  n = +n || 0;
+  if(n>=100000) return (n/10000).toFixed(0)+"w";
+  if(n>=10000) return (n/10000).toFixed(1)+"w";
+  return String(n);
+}
+function cmtTime(t){
+  const d = new Date(t);
+  const diff = Date.now() - t;
+  if(diff < 60e3) return "刚刚";
+  if(diff < 3600e3) return Math.floor(diff/60e3)+"分钟前";
+  if(diff < 86400e3) return Math.floor(diff/3600e3)+"小时前";
+  const p = n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function cmtItem(c){
+  const u = c.user || {};
+  const ava = (u.avatarUrl||"").replace(/^http:/,"https:");
+  return `<div class="pp-cmt">
+    <img class="ava" src="${ava}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"/>
+    <div class="cbody">
+      <div class="nm">${escHtml(u.nickname||"网易用户")}</div>
+      <div class="ct">${escHtml(c.content)}</div>
+      <div class="ft">
+        <span>${cmtTime(c.time||Date.now())}</span>
+        <span class="like">👍 ${cmtLike(c.likedCount)}</span>
+      </div>
+    </div>
+  </div>`;
+}
+function buildCmtHtml(payload){
+  let html = "";
+  if(payload.hot.length) html += `<div class="pp-cmt-sec">精彩评论</div>` + payload.hot.slice(0,10).map(cmtItem).join("");
+  if(payload.list.length) html += `<div class="pp-cmt-sec">最新评论<span class="sec-cnt">共${cmtLike(payload.total)}条</span></div>` + payload.list.slice(0,20).map(cmtItem).join("");
+  return html || '<div class="lrc-empty">还没有评论，快来抢沙发</div>';
+}
+async function loadComments(song){
+  if(!song || !song.id){
+    ppCmtList.innerHTML = '<div class="lrc-empty">暂无评论</div>';
+    return;
+  }
+  // 同一首歌且已渲染过，直接返回
+  if(cmtSongId === song.id && ppCmtList.dataset.done==="1") return;
+  const render = (payload)=>{
+    cmtCache.set(song.id, payload);
+    ppCmtList.innerHTML = buildCmtHtml(payload);
+    ppCmtCount.textContent = payload.total ? cmtLike(payload.total) : "";
+    ppCmtList.dataset.done = "1";
+    cmtSongId = song.id;
+  };
+  if(cmtCache.has(song.id)){ render(cmtCache.get(song.id)); return; }
+  cmtSongId = song.id;
+  ppCmtList.dataset.done = "0";
+  ppCmtList.innerHTML = '<div class="lrc-empty">评论加载中...</div>';
+  const target = `https://music.163.com/api/v1/resource/comments/R_SO_4_${song.id}?limit=30`;
+  for(const proxy of CMT_PROXIES){
+    try{
+      const res = await fetch(proxy(target),{cache:"no-store"});
+      if(!res.ok) continue;
+      const data = await res.json();
+      const hot = data && Array.isArray(data.hotComments) ? data.hotComments : [];
+      const list = data && Array.isArray(data.comments) ? data.comments : [];
+      if(!hot.length && !list.length) continue;
+      const total = data && typeof data.total==="number" ? data.total : (hot.length+list.length);
+      render({hot,list,total});
+      return;
+    }catch(e){}
+  }
+  if(cmtSongId===song.id && ppCmtList.dataset.done!=="1"){
+    ppCmtList.innerHTML = '<div class="lrc-empty">评论加载失败，请稍后重试</div>';
+  }
+}
 
 /* ---------- State memory ---------- */
 function saveState(s, pos){
