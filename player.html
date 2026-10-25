@@ -542,6 +542,55 @@
 
 <script>
 const API = "https://api.injahow.cn/meting/";
+const GD = "https://music-api.gdstudio.xyz/api.php";
+
+/* ---------- Data layer: GD Studio 优先 + injahow 兜底 ---------- */
+function mapGdTrack(t){
+  return {
+    id:String(t.id),
+    name:t.name||"未知歌曲",
+    artist:(t.ar||[]).map(a=>a.name).join(" / ")||"未知歌手",
+    pic:((t.al&&t.al.picUrl)||"").replace(/^http:/,"https:"),
+    url:"", lrc:""
+  };
+}
+async function fetchPlaylist(pid){
+  // GD Studio（主源）
+  try{
+    const res = await fetch(`${GD}?types=playlist&source=netease&id=${pid}`);
+    const j = await res.json();
+    const tr = j && j.playlist && j.playlist.tracks;
+    if(Array.isArray(tr) && tr.length){
+      return tr.map(mapGdTrack);
+    }
+  }catch(e){}
+  // injahow Meting（兜底）
+  try{
+    const res = await fetch(`${API}?type=playlist&id=${pid}&server=netease`);
+    const list = await res.json();
+    if(Array.isArray(list) && list.length && list[0] && list[0].name){
+      return list.map(s=>({
+        id:String(s.id||""),
+        name:s.name||"未知歌曲",
+        artist:s.artist||"未知歌手",
+        pic:(s.pic||"").replace(/^http:/,"https:"),
+        url:s.id?`${API}?type=url&id=${s.id}&server=netease`:"",
+        lrc:s.id?`${API}?type=lrc&id=${s.id}&server=netease`:""
+      }));
+    }
+  }catch(e){}
+  return null;
+}
+// 每次播放都现取新链接（网易直链约20分钟过期）
+async function ensurePlayUrl(s){
+  if(s.url) return s.url; // 兜底源返回的链接
+  try{
+    const res = await fetch(`${GD}?types=url&source=netease&id=${s.id}&br=320`);
+    const j = await res.json();
+    if(j && j.url) return j.url;
+  }catch(e){}
+  return `${API}?type=url&id=${s.id}&server=netease`;
+}
 
 // Charts config
 const CHARTS = [
@@ -682,8 +731,9 @@ async function loadChart(idx){
   songListEl.innerHTML = `<div class="loader"><div class="spinner"></div><p>加载 ${c.name} 中...</p></div>`;
 
   try{
-    const res = await fetch(`${API}?type=playlist&id=${c.id}&server=netease`);
-    songs = await res.json();
+    const list = await fetchPlaylist(c.id);
+    if(!list) throw new Error("empty");
+    songs = list;
     renderSongs();
     tryRestore();
   }catch(e){
@@ -738,14 +788,13 @@ function renderSongs(){
 }
 
 /* ---------- Playback ---------- */
-function playSong(idx){
+async function playSong(idx){
   if(idx<0||idx>=songs.length) return;
   currentIdx = idx;
   const s = songs[idx];
   pTitle.textContent = s.name;
   pArtist.textContent = s.artist;
   pCover.src = s.pic || "";
-  audio.src = s.url;
   // 记录历史 / 保存状态 / 更新收藏心 / 系统媒体信息 / 标签页标题
   recordHistory(s);
   saveState(s, 0);
@@ -753,6 +802,17 @@ function playSong(idx){
   setMediaSession(s);
   document.title = `▶ ${s.name} - ${s.artist} | 云音播放器`;
   if(currentQueueOpen) renderQueue();
+  // update row highlight
+  document.querySelectorAll(".song-row").forEach((e,i)=>e.classList.toggle("playing",i===idx));
+  // load lyrics
+  loadLyrics(s);
+  // scroll into view
+  const row = songListEl.querySelector(`.song-row[data-idx="${idx}"]`);
+  if(row) row.scrollIntoView({behavior:"smooth",block:"nearest"});
+  // 获取播放链接并播放（GD Studio 现取，网易直链会过期）
+  const url = await ensurePlayUrl(s);
+  if(currentIdx!==idx) return; // 等待期间用户已切歌
+  audio.src = url;
   audio.play().then(()=>{
     setPlaying(true);
   }).catch(err=>{
@@ -764,13 +824,6 @@ function playSong(idx){
     toast("播放失败，自动切换下一首");
     setTimeout(()=>nextSong(),800);
   });
-  // update row highlight
-  document.querySelectorAll(".song-row").forEach((e,i)=>e.classList.toggle("playing",i===idx));
-  // load lyrics
-  loadLyrics(s.lrc);
-  // scroll into view
-  const row = songListEl.querySelector(`.song-row[data-idx="${idx}"]`);
-  if(row) row.scrollIntoView({behavior:"smooth",block:"nearest"});
 }
 
 function setPlaying(playing){
@@ -964,16 +1017,29 @@ document.addEventListener("keydown",(e)=>{
 });
 
 /* ---------- Lyrics ---------- */
-async function loadLyrics(url){
+async function loadLyrics(song){
   lyrics = [];
   lrcTrack.innerHTML = '<div class="lrc-empty">加载歌词中...</div>';
-  if(!url){ lrcTrack.innerHTML='<div class="lrc-empty">暂无歌词</div>'; return; }
+  if(!song || !song.id){ lrcTrack.innerHTML='<div class="lrc-empty">暂无歌词</div>'; return; }
+  let text = null;
+  // GD Studio 优先
   try{
-    const res = await fetch(url);
-    const text = await res.text();
+    const res = await fetch(`${GD}?types=lyric&source=netease&id=${song.id}`);
+    const j = await res.json();
+    if(j && j.lyric) text = j.lyric;
+  }catch(e){}
+  // injahow 兜底
+  if(!text){
+    try{
+      const res2 = await fetch(`${API}?type=lrc&id=${song.id}&server=netease`);
+      const t2 = await res2.text();
+      if(t2 && t2.trim().startsWith("[")) text = t2;
+    }catch(e){}
+  }
+  if(text && text.trim()){
     parseLrc(text);
-  }catch(e){
-    lrcTrack.innerHTML = '<div class="lrc-empty">歌词加载失败</div>';
+  }else{
+    lrcTrack.innerHTML = '<div class="lrc-empty">纯音乐 · 暂无歌词</div>';
   }
 }
 function parseLrc(text){
@@ -1051,31 +1117,47 @@ async function doSearch(kw){
   chartDesc.textContent = `正在搜索"${kw}"...`;
   chartCover.innerHTML = "🔍";
   songListEl.innerHTML = `<div class="loader"><div class="spinner"></div><p>搜索中...</p></div>`;
-  // NetEase official search via CORS proxy fallback chain
-  const proxies = [
-    (u)=>`https://cors.eu.org/${u}`,
-    (u)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-    (u)=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
-  ];
-  const target = `https://music.163.com/api/search/get?s=${encodeURIComponent(kw)}&type=1&limit=40`;
-  let results = [];
-  for(const proxy of proxies){
-    try{
-      const res = await fetch(proxy(target), {cache:"no-store"});
-      if(!res.ok) continue;
-      const data = await res.json();
-      if(data && data.result && Array.isArray(data.result.songs)){
-        results = data.result.songs.map(s=>({
-          name:s.name,
-          artist:(s.artists||[]).map(a=>a.name).join(" / "),
-          url:`${API}?server=netease&type=url&id=${s.id}`,
-          pic:s.album && s.album.picUrl ? (s.album.picUrl + "?param=200y200") : "",
-          lrc:`${API}?server=netease&type=lrc&id=${s.id}`,
-          id:s.id
-        }));
-        break;
-      }
-    }catch(e){}
+  // GD Studio 搜索（主）
+  try{
+    const res = await fetch(`${GD}?types=search&source=netease&name=${encodeURIComponent(kw)}&count=30`);
+    const arr = await res.json();
+    if(Array.isArray(arr) && arr.length){
+      results = arr.map(t=>({
+        id:String(t.id),
+        name:t.name||"未知歌曲",
+        artist:(t.artist||[]).join(" / ")||"未知歌手",
+        pic:"",
+        url:"",
+        lrc:""
+      }));
+    }
+  }catch(e){}
+  // CORS 代理直连网易（兜底）
+  if(!results.length){
+    const proxies = [
+      (u)=>`https://cors.eu.org/${u}`,
+      (u)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      (u)=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+    ];
+    const target = `https://music.163.com/api/search/get?s=${encodeURIComponent(kw)}&type=1&limit=40`;
+    for(const proxy of proxies){
+      try{
+        const res = await fetch(proxy(target), {cache:"no-store"});
+        if(!res.ok) continue;
+        const data = await res.json();
+        if(data && data.result && Array.isArray(data.result.songs)){
+          results = data.result.songs.map(s=>({
+            id:String(s.id),
+            name:s.name,
+            artist:(s.artists||[]).map(a=>a.name).join(" / "),
+            pic:s.album && s.album.picUrl ? (s.album.picUrl + "?param=200y200").replace(/^http:/,"https:") : "",
+            url:"",
+            lrc:""
+          }));
+          break;
+        }
+      }catch(e){}
+    }
   }
   if(results.length){
     songs = results;
@@ -1199,23 +1281,21 @@ function startFM(){
   // 合并所有榜单歌曲去重作为FM曲库
   fmPool = [];
   const seen = new Set();
-  CHARTS.forEach(async (c)=>{
-    try{
-      const res = await fetch(`${API}?type=playlist&id=${c.id}&server=netease`);
-      const list = await res.json();
-      if(Array.isArray(list)){
-        list.forEach(x=>{
-          const k = x.id || (x.name+"::"+x.artist);
-          if(!seen.has(k)){ seen.add(k); fmPool.push(x); }
-        });
-      }
-      songs = fmPool.slice();
-      if(fmMode){
-        if(!fmStarted){ fmStarted = true; nextSong(); renderSongs(); }
-        else renderSongs();
-      }
-    }catch(e){}
-  });
+  const loadFmChart = async (pid)=>{
+    const list = await fetchPlaylist(pid);
+    if(Array.isArray(list)){
+      list.forEach(x=>{
+        const k = x.id || (x.name+"::"+x.artist);
+        if(!seen.has(k)){ seen.add(k); fmPool.push(x); }
+      });
+    }
+    songs = fmPool.slice();
+    if(fmMode){
+      if(!fmStarted && songs.length){ fmStarted = true; nextSong(); renderSongs(); }
+      else renderSongs();
+    }
+  };
+  CHARTS.forEach(c=>loadFmChart(c.id).catch(()=>{}));
   songs = [];
   songListEl.innerHTML = `<div class="loader"><div class="spinner"></div><p>正在准备FM曲库...</p></div>`;
   toast("私人FM已开启，随机为你播放");
@@ -1246,16 +1326,12 @@ async function loadPlaylist(idx){
   chartCover.style.background = p.g;
   songListEl.innerHTML = `<div class="loader"><div class="spinner"></div><p>加载歌单中...</p></div>`;
   try{
-    const res = await fetch(`${API}?type=playlist&id=${p.id}&server=netease`);
-    songs = await res.json();
-    if(!Array.isArray(songs)) songs = [];
+    const list = await fetchPlaylist(p.id);
+    if(!list || !list.length) throw new Error("empty");
+    songs = list;
     renderSongs();
-    if(songs.length){
-      toast(`已加载歌单「${p.name}」，共 ${songs.length} 首`);
-      playSong(0);
-    }else{
-      songListEl.innerHTML = `<div class="empty"><p>歌单加载失败，请稍后重试</p></div>`;
-    }
+    toast(`已加载歌单「${p.name}」，共 ${songs.length} 首`);
+    playSong(0);
   }catch(e){
     songListEl.innerHTML = `<div class="empty"><p>网络加载失败，请稍后重试</p></div>`;
   }
