@@ -413,8 +413,8 @@
   .pp-head-info{text-align:center;min-width:0;max-width:70%}
   .pp-head-info .t{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pp-head-info .a{font-size:12px;color:var(--text-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .pp-body{position:relative;z-index:2;flex:1;display:flex;align-items:center;gap:5vw;padding:24px 6vw;min-height:0}
-  .pp-disc-wrap{position:relative;width:min(360px,34vw);flex-shrink:0}
+  .pp-body{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px 24px 22px;min-height:0;overflow:hidden}
+  .pp-disc-wrap{position:relative;width:min(250px,34vh);flex-shrink:0}
   .pp-disc{
     position:relative;width:100%;aspect-ratio:1;border-radius:50%;
     background:
@@ -463,8 +463,8 @@
     background:linear-gradient(180deg,#3d3d45,#1b1b20);
     box-shadow:0 3px 8px rgba(0,0,0,.5);
   }
-  .pp-right{flex:1;min-width:0;height:100%;display:flex;flex-direction:column}
-  .pp-tabs{display:flex;gap:22px;padding:0 6px 10px;border-bottom:1px solid rgba(255,255,255,.06)}
+  .pp-right{flex:1;min-width:0;width:min(600px,100%);min-height:0;display:flex;flex-direction:column}
+  .pp-tabs{display:flex;gap:26px;justify-content:center;padding:2px 6px 10px;border-bottom:1px solid rgba(255,255,255,.06)}
   .pp-tab{
     background:none;border:none;color:var(--text-3);font-size:14px;font-weight:600;
     cursor:pointer;padding:4px 2px;position:relative;transition:.2s;letter-spacing:1px;
@@ -478,7 +478,7 @@
   }
   .pp-pane{flex:1;min-height:0}
   .pp-pane.hidden{display:none}
-  .pp-lyrics{height:100%;overflow:hidden;position:relative;padding:35% 6px;text-align:center}
+  .pp-lyrics{height:100%;overflow:hidden;position:relative;padding:22% 6px;text-align:center}
   .pp-lyrics::before,.pp-lyrics::after{content:"";position:absolute;left:0;right:0;height:22%;pointer-events:none;z-index:2}
   .pp-lyrics::before{top:0;background:linear-gradient(180deg,rgba(11,11,13,.9),transparent)}
   .pp-lyrics::after{bottom:0;background:linear-gradient(0deg,rgba(11,11,13,.9),transparent)}
@@ -506,11 +506,9 @@
     .main{grid-column:1}
     .player{grid-template-columns:auto 1fr}
     .p-center{display:none}
-    .pp-body{flex-direction:column;gap:16px;padding:22px 18px;overflow-y:auto;align-items:stretch}
-    .pp-disc-wrap{width:min(250px,58vw);margin:2px auto 0}
-    .pp-right{height:60vh;flex:none}
-    .pp-arm{scale:.7}
-    .pp-lyrics{padding:20% 6px}
+    .pp-disc-wrap{width:min(200px,42vw)}
+    .pp-arm{scale:.72}
+    .pp-body{padding:10px 14px 16px}
   }
   .toast{
     position:fixed;bottom:110px;left:50%;transform:translateX(-50%) translateY(20px);
