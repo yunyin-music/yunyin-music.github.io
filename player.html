@@ -391,6 +391,7 @@
   /* ---------- Play page (vinyl + lyrics + comments) ---------- */
   .playpage{
     position:fixed;top:14px;left:14px;right:14px;bottom:92px;
+    --glow1:167,139,250;--glow2:124,58,237;
     background:#0b0b0d;border-radius:var(--radius);
     border:1px solid var(--border);
     transform:translateY(calc(100% + 110px));
@@ -401,6 +402,14 @@
   .playpage.open{transform:translateY(0)}
   .pp-bg{position:absolute;inset:0;z-index:0}
   .pp-bg img{width:100%;height:100%;object-fit:cover;filter:blur(90px) brightness(.4) saturate(1.3);transform:scale(1.3)}
+  .pp-bg::before{
+    content:"";position:absolute;inset:-25%;
+    background:
+      radial-gradient(42% 36% at 22% 28%, rgba(var(--glow1),.32), transparent 70%),
+      radial-gradient(48% 42% at 78% 72%, rgba(var(--glow2),.26), transparent 70%);
+    animation:bgdrift 22s ease-in-out infinite alternate;
+  }
+  @keyframes bgdrift{to{transform:translate(5%,-4%) scale(1.12)}}
   .pp-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,11,13,.55),rgba(11,11,13,.85))}
   .pp-head{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
   .pp-collapse{
@@ -441,10 +450,62 @@
     position:absolute;inset:0;border-radius:50%;pointer-events:none;z-index:2;
     background:linear-gradient(135deg,rgba(255,255,255,.09),transparent 38%,transparent 62%,rgba(255,255,255,.05));
   }
+  /* 弥散光晕：跟随歌曲换色 */
+  .pp-glow{
+    position:absolute;left:50%;top:50%;width:175%;aspect-ratio:1;border-radius:50%;
+    transform:translate(-50%,-50%);pointer-events:none;z-index:0;
+    background:radial-gradient(closest-side, rgba(var(--glow1),.42), rgba(var(--glow1),.13) 52%, transparent 74%);
+    animation:glowpulse 6s ease-in-out infinite;
+  }
+  @keyframes glowpulse{
+    0%,100%{opacity:.85;transform:translate(-50%,-50%) scale(1)}
+    50%{opacity:1;transform:translate(-50%,-50%) scale(1.07)}
+  }
+  /* 唱片 A/B 翻面 */
+  .pp-flip{
+    position:relative;width:100%;aspect-ratio:1;cursor:pointer;
+    transform-style:preserve-3d;transition:transform .75s cubic-bezier(.4,0,.2,1);
+  }
+  .playpage.flipped .pp-flip{transform:rotateY(180deg)}
+  .playpage.flipped .pp-arm{opacity:0}
+  .pp-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  .pp-face.pp-back{transform:rotateY(180deg)}
+  .pp-backcard{
+    width:92%;height:92%;margin:4%;border-radius:20px;
+    background:linear-gradient(160deg,#17171b,#101013);
+    border:1px solid var(--border);
+    box-shadow:0 20px 50px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:7px;padding:10px 16px;text-align:center;overflow:hidden;
+  }
+  .pp-backcard .bc-name{font-size:15px;font-weight:700;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+  .pp-backcard .bc-artist{font-size:12px;color:var(--text-2);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+  .pp-backcard .bc-rows{width:100%;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:6px;overflow:hidden}
+  .pp-backcard .bc-row{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    font-size:11.5px;padding:3px 10px;border-radius:8px;background:rgba(255,255,255,.04);
+    flex-shrink:0;
+  }
+  .pp-backcard .bc-row span{color:var(--text-3);flex-shrink:0}
+  .pp-backcard .bc-row b{color:var(--text-2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pp-backcard .bc-tip{font-size:10px;color:var(--text-3);flex-shrink:0}
+  /* 弹幕评论 */
+  .pp-danmaku{position:absolute;top:2%;left:0;right:0;height:60%;z-index:7;pointer-events:none;overflow:hidden}
+  .pp-danmaku .dm{
+    position:absolute;left:100%;white-space:nowrap;max-width:70%;
+    padding:5px 14px;border-radius:20px;font-size:12px;color:#e8e8ec;
+    background:rgba(18,18,22,.55);border:1px solid rgba(255,255,255,.09);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    text-overflow:ellipsis;overflow:hidden;
+    animation:dmfly linear infinite;animation-play-state:paused;
+  }
+  .playpage.playing .pp-danmaku .dm{animation-play-state:running}
+  @keyframes dmfly{to{transform:translateX(calc(-100vw - 100%))}}
   .pp-arm{
     position:absolute;top:-8%;right:-4%;width:130px;height:230px;z-index:6;
     transform-origin:34px 34px;transform:rotate(-32deg);
-    transition:transform .6s cubic-bezier(.34,1.2,.4,1);
+    transition:transform .6s cubic-bezier(.34,1.2,.4,1),opacity .4s ease;
+    pointer-events:none;
   }
   .playpage.playing .pp-arm{transform:rotate(0deg)}
   .pp-arm-base{
@@ -689,16 +750,35 @@
   </div>
   <div class="pp-body">
     <div class="pp-disc-wrap">
+      <div class="pp-glow"></div>
       <div class="pp-arm">
         <div class="pp-arm-base"></div>
         <div class="pp-arm-rod"></div>
         <div class="pp-arm-head"></div>
       </div>
-      <div class="pp-disc">
-        <div class="pp-cover"><img id="ppCover" src="" alt=""/></div>
-        <div class="pp-spindle"></div>
+      <div class="pp-danmaku" id="ppDanmaku"></div>
+      <div class="pp-flip" id="ppFlip" title="点击翻面查看歌曲信息">
+        <div class="pp-face pp-front">
+          <div class="pp-disc">
+            <div class="pp-cover"><img id="ppCover" src="" alt=""/></div>
+            <div class="pp-spindle"></div>
+          </div>
+          <div class="pp-disc-sheen"></div>
+        </div>
+        <div class="pp-face pp-back">
+          <div class="pp-backcard">
+            <div class="bc-name" id="pbName">—</div>
+            <div class="bc-artist" id="pbArtist2">—</div>
+            <div class="bc-rows">
+              <div class="bc-row"><span>专辑</span><b id="pbAlbum">—</b></div>
+              <div class="bc-row"><span>时长</span><b id="pbDur">—</b></div>
+              <div class="bc-row"><span>评论</span><b id="pbCmt">—</b></div>
+              <div class="bc-row"><span>收藏</span><b id="pbFav">—</b></div>
+            </div>
+            <div class="bc-tip">点击唱片翻回正面</div>
+          </div>
+        </div>
       </div>
-      <div class="pp-disc-sheen"></div>
     </div>
     <div class="pp-right">
       <div class="pp-tabs">
@@ -732,6 +812,8 @@ function mapGdTrack(t){
     name:t.name||"未知歌曲",
     artist:(t.ar||[]).map(a=>a.name).join(" / ")||"未知歌手",
     pic:((t.al&&t.al.picUrl)||"").replace(/^http:/,"https:"),
+    album:(t.al&&t.al.name)||"",
+    dur:t.dt||0,
     url:"", lrc:""
   };
 }
@@ -1349,6 +1431,8 @@ async function doSearch(kw){
             name:s.name,
             artist:(s.artists||[]).map(a=>a.name).join(" / "),
             pic:s.album && s.album.picUrl ? (s.album.picUrl + "?param=200y200").replace(/^http:/,"https:") : "",
+            album:(s.album&&s.album.name)||"",
+            dur:s.duration||0,
             url:"",
             lrc:""
           }));
@@ -1614,9 +1698,29 @@ const ppPaneCmt = document.getElementById("ppPaneCmt");
 const ppCmtList = document.getElementById("ppCmtList");
 const ppClose = document.getElementById("ppClose");
 const ppOpenBtn = document.getElementById("ppOpenBtn");
+const ppFlip = document.getElementById("ppFlip");
+const ppDanmaku = document.getElementById("ppDanmaku");
+const pbName = document.getElementById("pbName");
+const pbArtist2 = document.getElementById("pbArtist2");
+const pbAlbum = document.getElementById("pbAlbum");
+const pbDur = document.getElementById("pbDur");
+const pbCmt = document.getElementById("pbCmt");
+const pbFav = document.getElementById("pbFav");
 let ppTab = "lrc";
 let cmtSongId = null;
 const cmtCache = new Map();
+// 弥散光晕色板（按歌曲 hash 取色，避免跨域取色失败）
+const GLOWS = [
+  ["167,139,250","124,58,237"],  // 紫罗兰
+  ["96,165,250","37,99,235"],    // 天蓝
+  ["45,212,191","13,148,136"],   // 青绿
+  ["251,113,133","225,29,72"],   // 玫红
+  ["251,191,36","180,83,9"],     // 暖金
+  ["129,140,248","79,70,229"],   // 靛蓝
+  ["244,114,182","192,38,211"],  // 粉紫
+  ["134,239,172","22,163,74"],   // 薄荷绿
+];
+function hashSong(id){ let h=0; for(const ch of String(id)) h=(h*31+ch.charCodeAt(0))>>>0; return h; }
 // 网易官方评论接口经 CORS 代理获取（评论区数据实时来自网易，本站不存储）
 const CMT_PROXIES = [
   (u)=>`https://cors.eu.org/${u}`,
@@ -1629,7 +1733,7 @@ function openPlayPage(){
   const s = songs[currentIdx];
   if(s) updatePlayPage(s);
   syncPlayPageState();
-  if(ppTab==="cmt" && s) loadComments(s);
+  if(s) loadComments(s);   // 自动加载评论：弹幕、评论数、评论区共用
 }
 function closePlayPage(){ playPage.classList.remove("open"); }
 function syncPlayPageState(){
@@ -1645,11 +1749,45 @@ function updatePlayPage(s){
   ppArtist.textContent = s.artist;
   ppCover.src = s.pic || "";
   ppBgImg.src = s.pic || "";
+  // 弥散光晕按歌曲换色
+  const g = GLOWS[hashSong(s.id) % GLOWS.length];
+  playPage.style.setProperty("--glow1", g[0]);
+  playPage.style.setProperty("--glow2", g[1]);
+  // 背面信息卡
+  pbName.textContent = s.name;
+  pbArtist2.textContent = s.artist;
+  pbAlbum.textContent = s.album || "—";
+  pbDur.textContent = s.dur ? fmt(s.dur/1000) : "—";
+  pbFav.textContent = favs.some(f=>f.id===s.id) ? "❤ 已收藏" : "☆ 未收藏";
+  pbCmt.textContent = cmtCache.has(s.id) ? cmtLike(cmtCache.get(s.id).total||0)+" 条" : "加载中…";
   if(cmtSongId !== s.id){
     ppCmtList.dataset.done = "0";
     ppCmtCount.textContent = "";
   }
 }
+// 弹幕评论
+function buildDanmaku(songId, hot){
+  if(ppDanmaku.dataset.sid === String(songId)) return;
+  ppDanmaku.dataset.sid = String(songId);
+  ppDanmaku.innerHTML = "";
+  const list = (hot||[]).slice(0,8);
+  list.forEach((c,i)=>{
+    const el = document.createElement("span");
+    el.className = "dm";
+    let txt = String(c.content||"");
+    if(txt.length>42) txt = txt.slice(0,42)+"…";
+    el.textContent = txt;
+    el.style.top = (4 + (i%4)*24) + "%";
+    el.style.animationDuration = (13+Math.random()*7).toFixed(1)+"s";
+    el.style.animationDelay = (-Math.random()*15).toFixed(1)+"s";
+    ppDanmaku.appendChild(el);
+  });
+}
+ppFlip.addEventListener("click",()=>{
+  playPage.classList.toggle("flipped");
+  const s = songs[currentIdx];
+  if(s && playPage.classList.contains("flipped")) loadComments(s);
+});
 function switchPpTab(t){
   ppTab = t;
   ppTabLrc.classList.toggle("active",t==="lrc");
@@ -1719,6 +1857,8 @@ async function loadComments(song){
     ppCmtCount.textContent = payload.total ? cmtLike(payload.total) : "";
     ppCmtList.dataset.done = "1";
     cmtSongId = song.id;
+    if(pbCmt) pbCmt.textContent = cmtLike(payload.total||0)+" 条";
+    buildDanmaku(song.id, payload.hot);
   };
   if(cmtCache.has(song.id)){ render(cmtCache.get(song.id)); return; }
   cmtSongId = song.id;
@@ -1740,6 +1880,7 @@ async function loadComments(song){
   }
   if(cmtSongId===song.id && ppCmtList.dataset.done!=="1"){
     ppCmtList.innerHTML = '<div class="lrc-empty">评论加载失败，请稍后重试</div>';
+    if(pbCmt) pbCmt.textContent = "暂不可用";
   }
 }
 
