@@ -1955,6 +1955,12 @@ function syncPlayPageState(){
 ppClose.addEventListener("click",closePlayPage);
 ppOpenBtn.addEventListener("click",openPlayPage);
 vinyl.addEventListener("click",openPlayPage);
+// 网易云式大点击区：手机上点歌名/歌手区域也能打开播放页（唱片按钮太小难点中）
+const pInfoEl = document.querySelector(".p-info");
+if(pInfoEl){
+  pInfoEl.style.cursor = "pointer";
+  pInfoEl.addEventListener("click",openPlayPage);
+}
 bindLrcClick(ppLrcTrack);
 
 function updatePlayPage(s){
@@ -2293,6 +2299,16 @@ function setMediaSession(s){
 /* ---------- PWA ---------- */
 if('serviceWorker' in navigator && location.protocol==='https:'){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
+  // 新 SW 接管后自动刷新一次，避免手机端一直停留在旧版本（修复"唱片打不开播放页"等版本滞后问题）
+  // 仅在已有旧 SW 控制的会话才监听：首次访问内容由网络直接返回，无需重载
+  if(navigator.serviceWorker.controller){
+    let __yyReloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", ()=>{
+      if(__yyReloaded) return;
+      __yyReloaded = true;
+      location.reload();
+    });
+  }
 }
 
 /* ---------- Init ---------- */
