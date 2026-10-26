@@ -3051,6 +3051,14 @@ var WALL = (function(){
     for(let i=0;i<layout.length;i++){ const r=layout[i]; if(r) maxB=Math.max(maxB, r.y+r.h); }
     return {w:COLS*(CELL+GAP)-GAP, h:maxB};
   }
+  /* 铺满视口所需的最小缩放：保证任何窗口尺寸下墙面都不露出空白 */
+  function fillScale(){
+    const g=gridSize();
+    if(!g.w||!g.h) return scaleFor();
+    return Math.max(innerWidth/g.w, innerHeight/g.h);
+  }
+  /* 铺满视口所需的最小缩放，并留 4% 余量，保证边缘平移时任何方向都不会露出空白 */
+  const fitScale=()=>Math.max(scaleFor(), fillScale()*1.04);
   /* 镜头边界：整面墙必须始终铺满视口（视频里没有露出空白） */
   function clampCam(){
     const g=gridSize();
@@ -3075,7 +3083,8 @@ var WALL = (function(){
     if(!r) return;
     const vw=innerWidth, vh=innerHeight;
     const need=Math.min((vw*0.92)/r.w, (vh*0.86)/r.h);
-    cam.scale=Math.max(0.36, Math.min(cam.scale, need));
+    // 不允许缩到露出空白：最小缩放永远是「铺满视口」
+    cam.scale=Math.max(fillScale(), Math.min(cam.scale, need));
     cam.x=vw/2-(r.x+r.w/2)*cam.scale;
     cam.y=vh/2-(r.y+r.h/2)*cam.scale;
     applyCam(animate!==false);
@@ -3120,6 +3129,7 @@ var WALL = (function(){
     zoomTitle.textContent=s.name||"";
     zoomArtist.textContent=s.artist||"";
     zoomOpen=true;
+    edgeX=0; edgeY=0;
     zoom.classList.add("on");
     zoom.setAttribute("aria-hidden","false");
     requestAnimationFrame(()=>zoom.classList.add("show"));
@@ -3202,7 +3212,11 @@ var WALL = (function(){
     activate(card, e.target, e.clientX);
   });
   field.addEventListener("pointercancel",endDrag);
-  window.addEventListener("pointerup",()=>{ if(dragging) endDrag(); });
+  window.addEventListener("pointerup",e=>{
+    if(dragging) endDrag();
+    // 触摸/手写笔没有「悬停」，抬手后不要留下漂移速度
+    if(e.pointerType && e.pointerType!=="mouse"){ edgeX=0; edgeY=0; }
+  });
   window.addEventListener("blur",endDrag);
 
   /* 键盘/程序触发的 click（展开卡里的按钮仍靠它） */
@@ -3214,14 +3228,30 @@ var WALL = (function(){
     activate(card, e.target, e.clientX);
   });
 
-  field.addEventListener("wheel",e=>{
-    e.preventDefault();
-    const next=Math.max(0.34, Math.min(1.15, cam.scale*Math.exp(-e.deltaY*0.0012)));
-    const px=(e.clientX-cam.x)/cam.scale, py=(e.clientY-cam.y)/cam.scale;
-    cam.scale=next;
-    cam.x=e.clientX-px*next; cam.y=e.clientY-py*next;
-    applyCam();
-  },{passive:false});
+  /* —— 边缘自动平移：鼠标靠近屏幕边缘时，视角朝那个方向移动（沉浸式不提供手动缩放） —— */
+  const EDGE_ZONE=110, EDGE_SPEED=1200;
+  let edgeX=0, edgeY=0, edgeRaf=0, edgeT=0;
+  function edgeFrom(e){
+    if(zoomOpen || dragging){ edgeX=0; edgeY=0; return; }
+    const vw=innerWidth, vh=innerHeight;
+    edgeX=0; edgeY=0;
+    if(e.clientX<EDGE_ZONE) edgeX=EDGE_SPEED*Math.pow((EDGE_ZONE-e.clientX)/EDGE_ZONE,2);
+    else if(e.clientX>vw-EDGE_ZONE) edgeX=-EDGE_SPEED*Math.pow((e.clientX-(vw-EDGE_ZONE))/EDGE_ZONE,2);
+    if(e.clientY<EDGE_ZONE) edgeY=EDGE_SPEED*Math.pow((EDGE_ZONE-e.clientY)/EDGE_ZONE,2);
+    else if(e.clientY>vh-EDGE_ZONE) edgeY=-EDGE_SPEED*Math.pow((e.clientY-(vh-EDGE_ZONE))/EDGE_ZONE,2);
+  }
+  function edgeLoop(ts){
+    if(!document.body.classList.contains("folia")){ edgeRaf=0; return; }
+    edgeRaf=requestAnimationFrame(edgeLoop);
+    if(!edgeT){ edgeT=ts; return; }
+    const dt=Math.min(0.06,(ts-edgeT)/1000); edgeT=ts;
+    if((edgeX||edgeY) && !dragging && !zoomOpen){
+      cam.x+=edgeX*dt; cam.y+=edgeY*dt;
+      applyCam(false);
+    }
+  }
+  field.addEventListener("pointermove",edgeFrom);
+  field.addEventListener("pointerleave",()=>{ edgeX=0; edgeY=0; });
 
   backBtn.addEventListener("click",()=>{ if(typeof setFolia==="function") setFolia(false); });
   window.addEventListener("keydown",e=>{
@@ -3232,7 +3262,7 @@ var WALL = (function(){
 
   window.addEventListener("resize",()=>{
     if(!document.body.classList.contains("folia")) return;
-    cam.scale=scaleFor();
+    cam.scale=fitScale();
     if(expanded>=0) panTo(expanded,false); else applyCam();
   });
 
@@ -3245,8 +3275,8 @@ var WALL = (function(){
     world.style.transition="none";
     world.style.filter="blur(18px)";
     world.style.opacity="0";
-    const s0=scaleFor();
-    cam={x:34,y:80,scale:s0*1.2};
+    const s0=fitScale();
+    cam={x:34,y:80,scale:s0*1.08};
     applyCam(false);
     requestAnimationFrame(()=>{
       world.style.transition="filter .75s ease, opacity .6s ease, transform .85s cubic-bezier(.22,.68,0,1)";
@@ -3256,10 +3286,22 @@ var WALL = (function(){
       if(expanded>=0) panTo(expanded,false); else applyCam(false);
       setTimeout(()=>{ world.style.transition=""; },950);
     });
+    edgeT=0;
+    if(!edgeRaf) edgeRaf=requestAnimationFrame(edgeLoop);
     startTick();
   };
-  api.close=()=>{ stopTick(); closeZoom(true); };
-  api.onSongs=()=>{ if(document.body.classList.contains("folia")) build(); };
+  api.close=()=>{
+    stopTick(); closeZoom(true);
+    if(edgeRaf){ cancelAnimationFrame(edgeRaf); edgeRaf=0; }
+    edgeX=0; edgeY=0;
+  };
+  api.onSongs=()=>{
+    if(!document.body.classList.contains("folia")) return;
+    build();
+    // 榜单切换后墙面高度会变，重新保证铺满
+    cam.scale=fitScale();
+    if(expanded>=0) panTo(expanded,false); else applyCam(false);
+  };
   api.onSong=()=>{
     if(!document.body.classList.contains("folia")) return;
     if(expanded<0 || expanded!==currentIdx){ expanded=currentIdx; build(); panTo(expanded); }
