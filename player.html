@@ -706,6 +706,76 @@
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  /* ---------- Folia 沉浸视图：粒子画布 + 卡片网格 ---------- */
+  .list-stage{position:relative;min-height:0;display:flex;flex-direction:column}
+  .list-stage .song-list{flex:1}
+  .stage-particles{
+    position:absolute;inset:0;width:100%;height:100%;z-index:0;
+    pointer-events:none;opacity:0;transition:opacity .7s ease;
+  }
+  body.folia .stage-particles{opacity:1}
+  .pp-particles{
+    position:absolute;inset:0;width:100%;height:100%;z-index:1;
+    pointer-events:none;opacity:.9;mix-blend-mode:screen;
+  }
+  .song-list.folia{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));
+    gap:14px;padding:16px 18px 26px;align-content:start;
+  }
+  .song-list.folia .song-row{
+    display:flex;flex-direction:column;align-items:stretch;min-width:0;padding:10px;border-radius:18px;
+    background:var(--glass);border:1px solid var(--border);
+    backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);
+    box-shadow:0 6px 24px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.05);
+    transition:transform .3s cubic-bezier(.4,0,.2,1),border-color .3s,box-shadow .3s;
+    position:relative;
+  }
+  .song-list.folia .song-row:hover{
+    transform:translateY(-4px);border-color:rgba(167,139,250,.45);
+    box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 0 1px rgba(167,139,250,.18),0 10px 34px var(--accent-glow);
+  }
+  .song-list.folia .song-row.playing{border-color:rgba(167,139,250,.7);background:linear-gradient(160deg,rgba(167,139,250,.14),var(--glass) 55%)}
+  /* 序号 → 左上角悬浮徽章 */
+  .song-list.folia .song-row .idx{
+    position:absolute;top:16px;left:16px;z-index:2;width:auto;height:26px;min-width:26px;
+    padding:0 7px;border-radius:9px;background:rgba(9,9,11,.72);
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.09);font-size:12px;
+  }
+  /* 大封面 */
+  .song-list.folia .song-row .song-info{display:block;margin:0}
+  .song-list.folia .song-row .thumb{
+    width:100%;height:0;padding-bottom:100%;border-radius:12px;overflow:hidden;position:relative;
+    background:linear-gradient(135deg,#1c1c20,#121214);margin:0;
+  }
+  .song-list.folia .song-row .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+  .song-list.folia .song-row:hover .thumb img{transform:scale(1.06)}
+  /* 文字区 */
+  .song-list.folia .song-row .meta{margin:10px 2px 0;min-width:0;max-width:100%}
+  .song-list.folia .song-row .title{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .song-list.folia .song-row .artist{font-size:11.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* 专辑/时长隐藏，收藏 → 右上角悬浮 */
+  .song-list.folia .song-row .album,
+  .song-list.folia .song-row .duration{display:none}
+  .song-list.folia .song-row .more{
+    position:absolute;top:16px;right:16px;z-index:2;
+    background:rgba(9,9,11,.72);border-radius:9px;padding:2px;
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.09);
+  }
+  /* 播放中行：封面呼吸光圈 */
+  .song-list.folia .song-row.playing .thumb::after{
+    content:"";position:absolute;inset:0;border-radius:12px;
+    box-shadow:0 0 0 2px var(--accent),0 0 26px var(--accent-glow);
+    animation:ppGlowPulse 2.4s ease-in-out infinite;pointer-events:none;
+  }
+  @media (max-width:600px){
+    .song-list.folia{grid-template-columns:repeat(2,1fr);gap:10px;padding:12px 12px 20px}
+    .song-list.folia .song-row{padding:8px;border-radius:14px}
+    .song-list.folia .song-row .idx{top:14px;left:14px}
+    .song-list.folia .song-row .more{top:14px;right:14px}
+  }
+
 </style>
 </head>
 <body>
@@ -778,6 +848,7 @@
         <p id="chartDesc">云音乐用户一周内收听所有线上歌曲官方 TOP 排行榜，每日更新。</p>
       </div>
       <div class="chart-actions">
+        <button class="btn-clear" id="viewToggle" title="切换 列表/沉浸 视图">◈ 沉浸</button>
         <button class="btn-clear" id="clearBtn" style="display:none">清空记录</button>
         <button class="btn-play-all" id="playAllBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -785,7 +856,10 @@
         </button>
       </div>
     </div>
-    <div class="song-list" id="songList"></div>
+    <div class="list-stage">
+      <canvas class="stage-particles" id="listParticles" aria-hidden="true"></canvas>
+      <div class="song-list" id="songList"></div>
+    </div>
   </main>
 
   <!-- Player -->
@@ -901,6 +975,7 @@
 <!-- Play page: vinyl + lyrics + comments -->
 <div class="playpage" id="playPage">
   <div class="pp-bg"><img id="ppBgImg" src="" alt=""/></div>
+  <canvas class="pp-particles" id="ppParticles" aria-hidden="true"></canvas>
   <div class="pp-head">
     <button class="pp-collapse" id="ppClose" title="收起">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1194,9 +1269,12 @@ async function loadChart(idx){
 
 /* ---------- Render song list ---------- */
 // 封面统一取小尺寸缩略图（列表 120px 足够），省 60%+ 图片流量
+// 仅 126.net 直链可重写 ?param= 尺寸；injahow 等中转链接自带参数，必须原样保留
 function thumbUrl(u, size){
   if(!u) return "";
-  return String(u).replace(/^http:/,"https:").split("?")[0] + "?param="+(size||120)+"y"+(size||120);
+  let s = String(u).replace(/^http:/,"https:");
+  if(/126\.net/.test(s)) s = s.split("?")[0] + "?param="+(size||120)+"y"+(size||120);
+  return s;
 }
 function renderSongs(){
   if(!songs.length){
@@ -1207,6 +1285,7 @@ function renderSongs(){
   if(songs[0] && songs[0].pic){
     chartCover.innerHTML = `<img src="${thumbUrl(songs[0].pic,200)}" alt="" onerror="this.parentElement.innerHTML='🔥'"/>`;
   }
+  const foliaOn = songListEl.classList.contains("folia");
   songListEl.innerHTML = songs.map((s,i)=>`
     <div class="song-row ${i===currentIdx?'playing':''}" data-idx="${i}">
       <div class="idx ${i<3?'top':''}">
@@ -1215,7 +1294,7 @@ function renderSongs(){
         <span class="playing-anim"><span></span><span></span><span></span></span>
       </div>
       <div class="song-info">
-        <div class="thumb">${s.pic?`<img src="${thumbUrl(s.pic,120)}" alt="" loading="lazy"/>`:""}</div>
+        <div class="thumb">${s.pic?`<img src="${thumbUrl(s.pic,foliaOn?420:120)}" alt="" loading="lazy"/>`:""}</div>
         <div class="meta">
           <div class="title">${s.name}</div>
           <div class="artist">${s.artist}</div>
@@ -1271,6 +1350,7 @@ async function playSong(idx){
   audio.src = url;
   audio.play().then(()=>{
     setPlaying(true);
+    listFx.recolor(); ppFx.recolor(); // Folia 粒子随歌曲色板换色
     preloadNext(idx); // 汽水式无缝切歌：提前取好下一首的播放链接
   }).catch(err=>{
     if(restoring){
@@ -1974,6 +2054,88 @@ const GLOWS = [
   ["134,239,172","22,163,74"],   // 薄荷绿
 ];
 function hashSong(id){ let h=0; for(const ch of String(id)) h=(h*31+ch.charCodeAt(0))>>>0; return h; }
+
+/* ---------- Folia 粒子引擎（歌单沉浸视图 + 播放页共用） ---------- */
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function makeParticles(canvas){
+  const ctx = canvas.getContext("2d");
+  let parts = [], W = 0, H = 0, raf = null, active = false, mx = .5, my = .5;
+  function palette(){
+    const s = songs[currentIdx];
+    return (s ? GLOWS[hashSong(s.id)%GLOWS.length] : GLOWS[0]).map(c=>c.split(",").map(Number));
+  }
+  function init(){
+    parts = [];
+    const n = Math.max(24, Math.min(85, Math.round(W*H/16000)));
+    const pal = palette();
+    for(let i=0;i<n;i++){
+      const t = Math.random();
+      const c = pal[0].map((v,k)=>Math.round(v+(pal[1][k]-v)*t)); // 双色插值
+      parts.push({
+        x:Math.random()*W, y:Math.random()*H,
+        r:.8+Math.random()*2.6,
+        c:`rgb(${c[0]},${c[1]},${c[2]})`,
+        a:.10+Math.random()*.32,
+        vy:-(.10+Math.random()*.38),
+        ph:Math.random()*Math.PI*2, sw:.004+Math.random()*.010,
+        tw:Math.random()*Math.PI*2, tv:.008+Math.random()*.02,
+      });
+    }
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.globalCompositeOperation = "lighter";
+    for(const p of parts){
+      p.y += p.vy; p.ph += p.sw; p.tw += p.tv;
+      if(p.y < -8){ p.y = H+8; p.x = Math.random()*W; }
+      const px = p.x + Math.sin(p.ph)*14 + (mx-.5)*18*p.r;
+      const py = p.y + (my-.5)*10*p.r;
+      ctx.beginPath();
+      ctx.fillStyle = p.c;
+      ctx.globalAlpha = p.a * (0.65 + 0.35*Math.sin(p.tw)); // 闪烁
+      ctx.arc(px, py, p.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+  }
+  function frame(){
+    if(!active){ raf = null; return; }
+    if(!document.hidden) draw();
+    raf = requestAnimationFrame(frame);
+  }
+  function resize(){
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    W = canvas.clientWidth; H = canvas.clientHeight;
+    canvas.width = Math.max(1, W*dpr); canvas.height = Math.max(1, H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    init();
+    if(reducedMotion) draw();
+  }
+  function start(){
+    if(reducedMotion){ draw(); return; } // 减少动态：仅静态一帧
+    if(active) return;
+    active = true;
+    if(!raf) raf = requestAnimationFrame(frame);
+  }
+  function stop(){ active = false; }
+  canvas.parentElement.addEventListener("pointermove",(e)=>{
+    const rc = canvas.getBoundingClientRect();
+    mx = (e.clientX-rc.left)/Math.max(1,rc.width);
+    my = (e.clientY-rc.top)/Math.max(1,rc.height);
+  });
+  window.addEventListener("resize", ()=>{ clearTimeout(canvas.__rz); canvas.__rz = setTimeout(resize,200); });
+  resize();
+  return {start, stop, resize, recolor:init};
+}
+const listFx = makeParticles(document.getElementById("listParticles"));
+const ppFx = makeParticles(document.getElementById("ppParticles"));
+function syncParticles(){
+  const folia = document.body.classList.contains("folia");
+  folia ? listFx.start() : listFx.stop();
+  playPage.classList.contains("open") ? ppFx.start() : ppFx.stop();
+}
+
 // 评论多通道：直连（浏览器装CORS扩展时可用）+ 多个公共代理，逐个尝试，8秒超时快速失败
 const CMT_PROXIES = [
   {u:(t)=>t, p:(d)=>d},
@@ -1996,6 +2158,7 @@ function openPlayPage(){
   const s = songs[currentIdx];
   if(s) updatePlayPage(s);
   syncPlayPageState();
+  syncParticles();
   if(s) loadComments(s);   // 自动加载评论：弹幕、评论数、评论区共用
   // 汽水式手势一次性提示
   if(!store.get('yy_swhint',false)){
@@ -2003,7 +2166,7 @@ function openPlayPage(){
     setTimeout(()=>toast("上滑唱片切下一首 · 长按 2 倍速"),900);
   }
 }
-function closePlayPage(){ playPage.classList.remove("open"); }
+function closePlayPage(){ playPage.classList.remove("open"); syncParticles(); }
 function syncPlayPageState(){
   playPage.classList.toggle("playing", currentIdx>=0 && !audio.paused);
 }
@@ -2350,6 +2513,22 @@ if(mMenuBtn){
   searchInput && searchInput.addEventListener("keydown",(e)=>{ if(e.key==="Enter") closeMobileNav(); });
 }
 
+/* ---------- Folia 沉浸视图切换 ---------- */
+const viewToggle = document.getElementById("viewToggle");
+let foliaView = !!store.get('yy_folia', false);
+function applyView(){
+  document.body.classList.toggle("folia", foliaView);
+  songListEl.classList.toggle("folia", foliaView);
+  viewToggle.textContent = foliaView ? "≡ 列表" : "◈ 沉浸";
+  syncParticles();
+  if(songs.length) renderSongs(); // 沉浸模式换大图封面
+}
+viewToggle.addEventListener("click",()=>{
+  foliaView = !foliaView;
+  store.set('yy_folia', foliaView);
+  applyView();
+});
+
 /* ---------- State memory ---------- */
 function saveState(s, pos){
   store.set('yy_state',{
@@ -2418,6 +2597,8 @@ if('serviceWorker' in navigator && location.protocol==='https:'){
 /* ---------- Init ---------- */
 renderCharts();
 renderWall();
+// 启动：恢复上次的视图模式（列表/沉浸），再加载默认榜单
+applyView();
 loadChart(0);
 </script>
 </body>
