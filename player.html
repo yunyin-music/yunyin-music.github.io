@@ -2068,13 +2068,33 @@ qSleep.addEventListener("change", ()=>{
 // 收藏备份
 qFavExport.addEventListener("click", ()=>{
   if(!favs.length){ toast("收藏为空，先去标记红心吧"); return; }
-  const blob = new Blob([JSON.stringify(favs,null,2)],{type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "yunyin-favs-"+new Date().toISOString().slice(0,10)+".json";
-  a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
-  toast(`已导出 ${favs.length} 首收藏`);
+  const fname = "yunyin-favs-"+new Date().toISOString().slice(0,10)+".json";
+  const file = new File([JSON.stringify(favs,null,2)], fname, {type:"application/json"});
+  const isTouch = window.matchMedia("(pointer:coarse)").matches;
+  // 手机（含 iOS PWA）：a.download 不可靠，走系统分享面板（可选「存储到文件」）
+  if(isTouch && navigator.canShare && navigator.canShare({files:[file]})){
+    navigator.share({files:[file], title:"云音收藏备份"}).then(
+      ()=>toast("已调出分享面板，可选「存储到文件」"),
+      ()=>{} // 用户取消
+    );
+    return;
+  }
+  // 桌面：标准下载
+  try{
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url; a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 3000);
+    toast(`已导出 ${favs.length} 首收藏，请查看浏览器下载`);
+  }catch(e){
+    // 极端环境兜底：新标签打开，手动另存
+    const w = window.open();
+    if(w){ w.document.body.innerHTML = '<pre style="white-space:pre-wrap">'+escHtml(JSON.stringify(favs,null,2))+'</pre>'; }
+    toast("已在新标签打开，请手动另存为 .json");
+  }
 });
 qFavImport.addEventListener("click", ()=>qFavFile.click());
 qFavFile.addEventListener("change", ()=>{
