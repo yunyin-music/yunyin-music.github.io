@@ -1206,6 +1206,32 @@
   }
   .btn-retry:hover{background:rgba(167,139,250,.26)}
 
+  /* ---------- 沉浸式：手机适配 ---------- */
+  @media (max-width:640px){
+    /* 5 列铺满后卡片约 78px，标题给固定小字号更清晰（避免世界坐标缩放后 <9px） */
+    .wall-card:not(.is-expanded) .wall-copy strong{font-size:11px!important;line-height:1.18}
+    .wall-card:not(.is-expanded) .wall-copy small{font-size:9px!important}
+    .wall-card.is-expanded .wall-copy{left:12px;right:12px;bottom:calc(56px + env(safe-area-inset-bottom,0px))}
+    .wall-card.is-expanded .wall-copy strong{font-size:22px}
+    .wall-card.is-expanded .wall-copy small{font-size:11px}
+    /* 触控目标放大到 36~44px，拇指点得中 */
+    .wall-back{width:44px;height:44px;font-size:22px}
+    .wall-full{width:38px;height:38px;top:10px;right:10px}
+    .wall-ctrl{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));gap:10px}
+    .wall-ctrl .wall-playbtn,.wall-ctrl .wall-pn{width:36px;height:36px}
+    .wall-ctrl .wall-playbtn svg{width:20px;height:20px}
+    .wall-ctrl .wall-pn svg{width:15px;height:15px}
+    .wall-time{font-size:10px}
+    .wall-bar{bottom:env(safe-area-inset-bottom,0px);height:14px}
+    .wall-badge{top:8px;left:8px;font-size:9px;padding:3px 6px}
+    #foliaWall{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+  }
+  /* 触摸设备没有真 hover：不让点击后的「粘滞悬停」把卡片顶起来 */
+  @media (hover:none){
+    .wall-card:hover{transform:none;filter:saturate(1.04) brightness(1.03)}
+    .wall-card:hover::after{animation:none}
+  }
+
 </style>
 </head>
 <body>
@@ -3076,7 +3102,11 @@ let foliaView = !!store.get('yy_folia', false);
    · 正在播放/点选的卡就地放大成 5x5 方形播放卡：细白描边 + 左下大标题 + 底部控制行
    · 入场时整面墙从模糊放大拉回清晰（对齐视频开头的过渡） */
 var WALL = (function(){
-  const CELL=96, GAP=4, OVERSCAN=400, GROW_W=5, GROW_H=5, COLS=19;
+  const CELL=96, GAP=4, OVERSCAN=400;
+  /* 手机屏窄：必须把列数降下来，卡片视觉尺寸才够大
+     （同样是 96 世界px 的卡，19 列在 390px 屏上只有 50px，5 列约 78px） */
+  const colsFor=()=>innerWidth<640?5:(innerWidth<1100?13:19);
+  const growFor=()=>innerWidth<640?4:5;
   // 密铺模板（对齐视频）：大量 1x1 小卡，少量 2x1 宽幅与 2x2/1x2 大卡
   const SPANS=[[1,1],[1,1],[2,1],[1,1],[2,2],[1,1],[1,1],[1,2],[1,1],[2,1],[1,1],[1,1],[2,2],[1,1],[1,2],[1,1],[2,1],[1,1],[1,1],[1,1],[2,1],[1,1],[1,2],[1,1]];
   const ICON_PLAY='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
@@ -3109,6 +3139,7 @@ var WALL = (function(){
   if(!root||!field||!world||!backBtn) return api;
 
   let cam={x:34,y:80,scale:0.76};
+  let colsNow=colsFor();
   let layout=[], nodes=[], expanded=-1, prevExpanded=-1, morphTimer=0;
   let dragging=false, didDrag=false, pt=null, cam0=null;
   let cullRaf=0, tickTimer=0;
@@ -3120,9 +3151,10 @@ var WALL = (function(){
 
   /* —— 贪心拼贴：先按列表顺序铺一遍；放大时用基础位置作锚点预留 4x4，其余重新流动 —— */
   function pack(count, growIdx){
-    const occ=new Set(), kk=(r,c)=>r*128+c;
+    const C=colsFor(), GW=growFor(), GH=growFor();
+    const occ=new Set(), kk=(r,c)=>r*160+c;
     const free=(r,c,w,h)=>{
-      if(c<0||c+w>COLS) return false;
+      if(c<0||c+w>C) return false;
       for(let y=r;y<r+h;y++) for(let x=c;x<c+w;x++) if(occ.has(kk(y,x))) return false;
       return true;
     };
@@ -3134,7 +3166,7 @@ var WALL = (function(){
       // 基础流锚点（不含放大）
       const o2=new Set();
       const f2=(r,c,w,h)=>{
-        if(c<0||c+w>COLS) return false;
+        if(c<0||c+w>C) return false;
         for(let y=r;y<r+h;y++) for(let x=c;x<c+w;x++) if(o2.has(kk(y,x))) return false;
         return true;
       };
@@ -3143,25 +3175,25 @@ var WALL = (function(){
       for(let i=0;i<=growIdx;i++){
         const sp=SPANS[i%SPANS.length];
         let done=false;
-        for(let r=0;!done;r++) for(let c=0;c<=COLS-sp[0];c++){
+        for(let r=0;!done;r++) for(let c=0;c<=C-sp[0];c++){
           if(f2(r,c,sp[0],sp[1])){
             m2(r,c,sp[0],sp[1]);
-            if(i===growIdx){ar=r;ac=Math.max(0,Math.min(COLS-GROW_W,c));}
+            if(i===growIdx){ar=r;ac=Math.max(0,Math.min(C-GW,c));}
             done=true;break;
           }
         }
       }
       // 放大卡至少下移 3 行，保证它上方也有满墙内容（视频里放大卡四周都是铺满的）
       ar=Math.max(3, ar);
-      mark(ar,ac,GROW_W,GROW_H);
-      out[growIdx]=rectOf(ar,ac,GROW_W,GROW_H);
+      mark(ar,ac,GW,GH);
+      out[growIdx]=rectOf(ar,ac,GW,GH);
     }
 
     for(let i=0;i<count;i++){
       if(i===growIdx) continue;
       const sp=SPANS[i%SPANS.length];
       let done=false;
-      for(let r=0;!done;r++) for(let c=0;c<=COLS-sp[0];c++){
+      for(let r=0;!done;r++) for(let c=0;c<=C-sp[0];c++){
         if(free(r,c,sp[0],sp[1])){ mark(r,c,sp[0],sp[1]); out[i]=rectOf(r,c,sp[0],sp[1]); done=true; break; }
       }
     }
@@ -3270,7 +3302,7 @@ var WALL = (function(){
   function gridSize(){
     let maxB=0;
     for(let i=0;i<layout.length;i++){ const r=layout[i]; if(r) maxB=Math.max(maxB, r.y+r.h); }
-    return {w:COLS*(CELL+GAP)-GAP, h:maxB};
+    return {w:colsFor()*(CELL+GAP)-GAP, h:maxB};
   }
   /* 铺满视口所需的最小缩放：保证任何窗口尺寸下墙面都不露出空白 */
   function fillScale(){
@@ -3305,7 +3337,7 @@ var WALL = (function(){
     const vw=innerWidth, vh=innerHeight;
     const need=Math.min((vw*0.92)/r.w, (vh*0.86)/r.h);
     // 不允许缩到露出空白：最小缩放永远是「铺满视口」
-    cam.scale=Math.max(fillScale(), Math.min(cam.scale, need));
+    cam.scale=Math.max(fitScale(), Math.min(cam.scale, need));
     cam.x=vw/2-(r.x+r.w/2)*cam.scale;
     cam.y=vh/2-(r.y+r.h/2)*cam.scale;
     applyCam(animate!==false);
@@ -3577,6 +3609,9 @@ var WALL = (function(){
 
   window.addEventListener("resize",()=>{
     if(!document.body.classList.contains("folia")) return;
+    // 列数随视口宽度变化（手机 5 列 / 平板 13 列 / 桌面 19 列），跨断点时重新铺一遍
+    const cc=colsFor();
+    if(cc!==colsNow){ colsNow=cc; build(); }
     cam.scale=fitScale();
     if(expanded>=0) panTo(expanded,false); else applyCam();
   });
