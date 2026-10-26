@@ -21,6 +21,11 @@
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
 <link rel="apple-touch-icon" href="icon-192.png" />
+<!-- 预连接：提前完成 API 与图片/音频 CDN 的 DNS+TLS 握手，首屏请求提速 -->
+<link rel="preconnect" href="https://music-api.gdstudio.xyz" crossorigin />
+<link rel="preconnect" href="https://p1.music.126.net" />
+<link rel="preconnect" href="https://p2.music.126.net" />
+<link rel="dns-prefetch" href="https://p3.music.126.net" />
 <style>
   :root{
     --bg-0:#09090b;
@@ -1140,21 +1145,45 @@ async function loadChart(idx){
   chartCover.innerHTML = c.icon;
   chartCover.style.background = "linear-gradient(135deg,#27272a,#18181b)";
 
-  songListEl.innerHTML = `<div class="loader"><div class="spinner"></div><p>加载 ${c.name} 中...</p></div>`;
+  // 榜单本地缓存：命中立即渲染（首开速度 = 0 网络），过期/缺失才走网络
+  const ck = "yy_chartcache_"+idx;
+  let cached = null;
+  try{ cached = JSON.parse(store.get(ck,"null")||"null"); }catch(e){}
+  const fresh = cached && Array.isArray(cached.list) && cached.list.length && (Date.now()-cached.t < 10*60*1000);
+
+  if(fresh){
+    songs = cached.list;
+    renderSongs();
+    tryRestore();
+  }else{
+    songListEl.innerHTML = `<div class="loader"><div class="spinner"></div><p>加载 ${c.name} 中...</p></div>`;
+  }
 
   try{
     const list = await fetchPlaylist(c.id);
-    if(!list) throw new Error("empty");
-    songs = list;
-    renderSongs();
-    tryRestore();
+    if(!list || !list.length) throw new Error("empty");
+    store.set(ck, JSON.stringify({t:Date.now(), list}));
+    // 用户还停留在该榜单时才刷新界面（缓存路径下避免重放恢复逻辑）
+    if(currentChart===idx){
+      songs = list;
+      renderSongs();
+      if(!fresh) tryRestore();
+    }
   }catch(e){
-    songListEl.innerHTML = `<div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><p>加载失败，请稍后重试</p></div>`;
-    toast("网络加载失败");
+    // 有旧缓存兜底就不报错；仅完全无数据时提示
+    if(!fresh){
+      songListEl.innerHTML = `<div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><p>加载失败，请稍后重试</p></div>`;
+      toast("网络加载失败");
+    }
   }
 }
 
 /* ---------- Render song list ---------- */
+// 封面统一取小尺寸缩略图（列表 120px 足够），省 60%+ 图片流量
+function thumbUrl(u, size){
+  if(!u) return "";
+  return String(u).replace(/^http:/,"https:").split("?")[0] + "?param="+(size||120)+"y"+(size||120);
+}
 function renderSongs(){
   if(!songs.length){
     songListEl.innerHTML = `<div class="empty"><p>暂无歌曲</p></div>`;
@@ -1162,7 +1191,7 @@ function renderSongs(){
   }
   // use first song's cover as chart cover
   if(songs[0] && songs[0].pic){
-    chartCover.innerHTML = `<img src="${songs[0].pic}" alt="" onerror="this.parentElement.innerHTML='🔥'"/>`;
+    chartCover.innerHTML = `<img src="${thumbUrl(songs[0].pic,200)}" alt="" onerror="this.parentElement.innerHTML='🔥'"/>`;
   }
   songListEl.innerHTML = songs.map((s,i)=>`
     <div class="song-row ${i===currentIdx?'playing':''}" data-idx="${i}">
@@ -1172,7 +1201,7 @@ function renderSongs(){
         <span class="playing-anim"><span></span><span></span><span></span></span>
       </div>
       <div class="song-info">
-        <div class="thumb">${s.pic?`<img src="${s.pic}" alt="" loading="lazy"/>`:""}</div>
+        <div class="thumb">${s.pic?`<img src="${thumbUrl(s.pic,120)}" alt="" loading="lazy"/>`:""}</div>
         <div class="meta">
           <div class="title">${s.name}</div>
           <div class="artist">${s.artist}</div>
