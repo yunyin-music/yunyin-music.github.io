@@ -593,16 +593,89 @@
   .pp-cmt .ft{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;color:var(--text-3)}
   .pp-cmt .like{display:inline-flex;align-items:center;gap:4px}
 
+  /* ---------- 移动端顶栏（桌面隐藏；必须位于 responsive 段之前） ---------- */
+  .m-top{
+    display:none;position:fixed;top:0;left:0;right:0;z-index:52;
+    height:calc(50px + env(safe-area-inset-top,0px));
+    padding:env(safe-area-inset-top,0px) 8px 0;
+    align-items:center;justify-content:space-between;
+    background:rgba(9,9,11,.88);border-bottom:1px solid var(--border);
+    backdrop-filter:blur(24px) saturate(1.3);
+    -webkit-backdrop-filter:blur(24px) saturate(1.3);
+  }
+  .m-brand{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:700;letter-spacing:.5px}
+  .m-logo{
+    width:26px;height:26px;border-radius:8px;font-size:14px;color:#0a0a0b;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 3px 10px var(--accent-glow);
+  }
+  .m-btn{
+    width:40px;height:40px;border:none;background:none;color:var(--text-2);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;border-radius:10px;
+  }
+  .m-btn:active{background:var(--glass-2);color:var(--text)}
+  .m-mask{display:none}
+
   /* ---------- responsive ---------- */
   @media (max-width:900px){
-    .app{grid-template-columns:1fr}
-    .sidebar{display:none}
-    .main{grid-column:1}
-    .player{grid-template-columns:auto 1fr}
+    .app{grid-template-columns:1fr;gap:0;padding:0}
+    .main{grid-column:1;border-radius:0;border-left:none;border-right:none;margin-top:calc(50px + env(safe-area-inset-top,0px))}
+
+    /* 顶栏显示 + 遮罩可用 */
+    .m-top{display:flex}
+    .m-mask{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .3s;z-index:60;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+    .m-mask.show{opacity:1;pointer-events:auto}
+
+    /* 侧边栏 → 左滑抽屉 */
+    .sidebar{
+      position:fixed;top:0;left:0;bottom:0;width:min(80vw,330px);z-index:62;
+      border-radius:0;border-top:none;border-bottom:none;
+      padding:calc(14px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px));
+      transform:translateX(-105%);transition:transform .34s cubic-bezier(.4,0,.2,1);
+      box-shadow:30px 0 60px rgba(0,0,0,.55);
+    }
+    .sidebar.open{transform:translateX(0)}
+
+    /* 榜单头部紧凑化 */
+    .chart-header{padding:14px 16px 10px;gap:13px;align-items:center}
+    .chart-cover{width:64px;height:64px;border-radius:13px;font-size:26px}
+    .chart-meta .tag{display:none}
+    .chart-meta h2{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52vw}
+    .chart-meta p{display:none}
+    .btn-play-all{padding:8px 14px;font-size:12px}
+    .btn-clear{font-size:11px;padding:6px 10px}
+
+    /* 播放栏：紧凑 + iPhone 底部安全区 */
+    .player{grid-template-columns:1fr auto;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));gap:12px}
     .p-center{display:none}
+    .volume{display:none}
+    .vinyl{width:46px;height:46px}
+    .vinyl img{inset:11px}
+    .p-right{gap:6px}
+    .toast{bottom:calc(92px + env(safe-area-inset-bottom,0px));font-size:12px;max-width:82vw}
+
+    /* 队列抽屉全宽 + 底部安全区 */
+    .queue-panel{right:0;left:0;top:auto;bottom:0;width:100%;max-height:72vh;height:auto;
+      border-radius:16px 16px 0 0;border-bottom:none;transform:translateY(110%);transition:transform .35s cubic-bezier(.4,0,.2,1);
+      padding-bottom:env(safe-area-inset-bottom,0px)}
+    .queue-panel.open{transform:translateY(0)}
+
+    /* 播放页适配 */
     .pp-disc-wrap{width:min(58vw,230px)}
     .pp-arm{scale:.72}
-    .pp-body{padding:8px 14px 14px;gap:10px}
+    .pp-body{padding:8px 14px calc(14px + env(safe-area-inset-bottom,0px));gap:10px}
+    .pp-sheet{border-radius:0}
+
+    /* 歌曲行触屏优化：取消 hover 残留，加大触摸目标 */
+    .song-row{-webkit-tap-highlight-color:transparent}
+    .song-row .idx{width:26px}
+  }
+  /* 触屏设备：禁用 hover 卡片浮起等需要鼠标的效果 */
+  @media (hover:none){
+    .song-row:hover{transform:none;border-color:transparent}
+    .pl-tile:hover{transform:none}
   }
   .toast{
     position:fixed;bottom:110px;left:50%;transform:translateX(-50%) translateY(20px);
@@ -613,11 +686,24 @@
     box-shadow:0 8px 30px rgba(0,0,0,.5);
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
 </style>
 </head>
 <body>
 <div class="bg-mesh"></div>
 <div class="bg-noise"></div>
+
+<!-- 移动端顶栏（仅 ≤900px 显示） -->
+<header class="m-top" aria-label="移动端导航">
+  <button class="m-btn" id="mMenuBtn" aria-label="打开菜单">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="14" y2="17"/></svg>
+  </button>
+  <div class="m-brand"><span class="m-logo">♪</span> 云音</div>
+  <button class="m-btn" id="mSearchBtn" aria-label="搜索">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+  </button>
+</header>
+<div class="m-mask" id="mMask"></div>
 
 <div class="app">
   <!-- Sidebar -->
@@ -2122,6 +2208,37 @@ qFavFile.addEventListener("change", ()=>{
   };
   r.readAsText(f);
 });
+
+/* ---------- Mobile drawer nav ---------- */
+const mMenuBtn = document.getElementById("mMenuBtn");
+const mSearchBtn = document.getElementById("mSearchBtn");
+const mMask = document.getElementById("mMask");
+const sideEl = document.querySelector(".sidebar");
+const isMobile = ()=>window.matchMedia("(max-width:900px)").matches;
+const closeMobileNav = ()=>{
+  if(!isMobile()) return;
+  sideEl.classList.remove("open");
+  mMask.classList.remove("show");
+};
+if(mMenuBtn){
+  mMenuBtn.addEventListener("click",()=>{
+    const open = !sideEl.classList.contains("open");
+    sideEl.classList.toggle("open", open);
+    mMask.classList.toggle("show", open);
+  });
+  mSearchBtn.addEventListener("click",()=>{
+    sideEl.classList.add("open");
+    mMask.classList.add("show");
+    setTimeout(()=>searchInput && searchInput.focus(), 380);
+  });
+  mMask.addEventListener("click", closeMobileNav);
+  // 手机上从侧栏选中任意入口（榜单/收藏/历史/FM/歌单墙）后自动收起抽屉
+  sideEl.addEventListener("click",(e)=>{
+    if(e.target.closest(".chart-item") || e.target.closest(".pl-tile")) setTimeout(closeMobileNav, 120);
+  });
+  // 搜索提交后收起
+  searchInput && searchInput.addEventListener("keydown",(e)=>{ if(e.key==="Enter") closeMobileNav(); });
+}
 
 /* ---------- State memory ---------- */
 function saveState(s, pos){
