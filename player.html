@@ -1141,6 +1141,71 @@
     .wall-copy{left:6px;right:6px;bottom:6px;gap:1px}
   }
 
+  /* ---------- 沉浸式：氛围 / 悬停质感 / 骨架屏 ---------- */
+  /* 当前歌曲封面的主色（--wall-rgb 由 JS 写入），整墙两处光晕跟着这首歌变 */
+  .wall-ambient{
+    position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(58% 46% at 16% 20%, rgba(var(--wall-rgb,253,92,71),.20), transparent 72%),
+      radial-gradient(52% 42% at 84% 80%, rgba(var(--wall-rgb,106,72,255),.15), transparent 72%);
+    animation:ambientPulse 9s ease-in-out infinite;
+  }
+  @keyframes ambientPulse{0%,100%{opacity:.78}50%{opacity:1}}
+
+  /* 悬停：轻微抬升 + 一道斜向高光扫过（只影响被悬停的那一张，开销可忽略） */
+  .wall-card{transition:transform .18s cubic-bezier(.22,.68,0,1), filter .18s ease}
+  .wall-card:hover{transform:translateY(-2px) scale(1.012)}
+  .wall-card.is-expanded:hover{transform:none}
+  .wall-card::after{
+    content:"";position:absolute;inset:0;z-index:5;pointer-events:none;opacity:0;
+    background:linear-gradient(112deg,transparent 34%,rgba(255,255,255,.20) 47%,rgba(255,255,255,.06) 53%,transparent 66%);
+    transform:translateX(-130%);
+  }
+  .wall-card:hover::after{animation:cardSheen .8s ease-out}
+  .wall-card.is-expanded::after{content:none}
+  @keyframes cardSheen{
+    0%{opacity:0;transform:translateX(-130%)}
+    18%{opacity:1}
+    100%{opacity:0;transform:translateX(130%)}
+  }
+
+  /* 骨架卡：接口未返回时先把墙铺满，避免一片空白 */
+  .wall-card.is-skel{background-color:#15141a}
+  .wall-card.is-skel::before{
+    content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+    background:linear-gradient(100deg,rgba(255,255,255,.03) 30%,rgba(255,255,255,.085) 46%,rgba(255,255,255,.03) 62%);
+    background-size:220% 100%;animation:skSweep 1.5s linear infinite;
+  }
+  .wall-card.is-skel .wall-tint{opacity:0}
+  .wall-card.is-skel .wall-copy,.wall-card.is-skel .wall-full,
+  .wall-card.is-skel .wall-badge,.wall-card.is-skel .wall-ctrl,
+  .wall-card.is-skel .wall-bar,.wall-card.is-skel .wall-shade{display:none!important}
+  .wall-card.is-skel:hover{transform:none;filter:none;cursor:progress}
+
+  /* 列表骨架行 */
+  @keyframes skSweep{from{background-position:140% 0}to{background-position:-40% 0}}
+  .sk{
+    display:block;border-radius:6px;
+    background:linear-gradient(100deg,rgba(255,255,255,.045) 30%,rgba(255,255,255,.1) 46%,rgba(255,255,255,.045) 62%);
+    background-size:220% 100%;animation:skSweep 1.5s linear infinite;
+  }
+  .song-row.skel{pointer-events:none}
+  .song-row.skel .thumb{border-radius:10px}
+  .song-row.skel .meta{display:flex;flex-direction:column;gap:6px;flex:1}
+  .sk-num{width:14px;height:11px}
+  .sk-line{height:10px}
+  .sk-w64{width:64%}
+  .sk-w38{width:38%}
+  .sk-w52{width:52%}
+  .sk-w32{width:32px}
+  .btn-retry{
+    margin-top:14px;padding:9px 20px;border-radius:24px;cursor:pointer;
+    background:rgba(167,139,250,.16);border:1px solid rgba(167,139,250,.42);
+    color:var(--accent-2);font-size:12.5px;font-weight:600;
+    transition:.2s cubic-bezier(.4,0,.2,1);
+  }
+  .btn-retry:hover{background:rgba(167,139,250,.26)}
+
 </style>
 </head>
 <body>
@@ -1149,6 +1214,7 @@
 
 <!-- 沉浸式：全屏可拖拽的马赛克墙面（视图中显示） -->
 <div id="foliaWall" aria-label="沉浸式">
+  <div class="wall-ambient" id="wallAmbient" aria-hidden="true"></div>
   <div class="wall-field" id="wallField">
     <div class="wall-world" id="wallWorld"></div>
   </div>
@@ -1638,12 +1704,21 @@ async function loadChart(idx){
     renderSongs();
     tryRestore();
   }else{
-    songListEl.innerHTML = `<div class="loader"><div class="spinner"></div><p>加载 ${c.name} 中...</p></div>`;
+    songListEl.innerHTML = skelRows(12);
+    if(window.WALL && window.WALL.pending) window.WALL.pending();
   }
 
-  try{
-    const list = await fetchPlaylist(c.id);
-    if(!list || !list.length) throw new Error("empty");
+  // 接口偶发超时/空返回：自动重试 2 次（间隔 0.9s、1.8s），仍失败才提示
+  let list = null;
+  for(let attempt=0; attempt<3 && !list; attempt++){
+    try{
+      const l = await fetchPlaylist(c.id);
+      if(l && l.length) list = l;
+    }catch(e){}
+    if(!list && attempt<2) await new Promise(r=>setTimeout(r, 900*(attempt+1)));
+  }
+
+  if(list){
     store.set(ck, JSON.stringify({t:Date.now(), list}));
     // 用户还停留在该榜单时才刷新界面（缓存路径下避免重放恢复逻辑）
     if(currentChart===idx){
@@ -1651,16 +1726,30 @@ async function loadChart(idx){
       renderSongs();
       if(!fresh) tryRestore();
     }
-  }catch(e){
-    // 有旧缓存兜底就不报错；仅完全无数据时提示
-    if(!fresh){
-      songListEl.innerHTML = `<div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><p>加载失败，请稍后重试</p></div>`;
-      toast("网络加载失败");
-    }
+  }else if(!fresh && currentChart===idx){
+    // 有旧缓存兜底就不报错；仅完全无数据时提示（骨架墙保留，点重试再拉一次）
+    songListEl.innerHTML = `<div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><p>加载失败，请稍后重试</p><button class="btn-retry" id="retryBtn">重新加载</button></div>`;
+    const rb = document.getElementById("retryBtn");
+    if(rb) rb.addEventListener("click", ()=>loadChart(idx));
+    toast("网络加载失败，已自动重试");
   }
 }
 
 /* ---------- Render song list ---------- */
+/* 首屏/加载中的骨架行，替代转圈 loader */
+function skelRows(n){
+  let h="";
+  for(let i=0;i<n;i++){
+    h+='<div class="song-row skel">'+
+      '<div class="idx"><span class="sk sk-num"></span></div>'+
+      '<div class="song-info"><div class="thumb sk"></div>'+
+        '<div class="meta"><span class="sk sk-line sk-w64"></span><span class="sk sk-line sk-w38"></span></div></div>'+
+      '<div class="album"><span class="sk sk-line sk-w52"></span></div>'+
+      '<div class="duration"><span class="sk sk-line sk-w32"></span></div>'+
+      '<div class="more"></div></div>';
+  }
+  return h;
+}
 // 封面统一取小尺寸缩略图（列表 120px 足够），省 60%+ 图片流量
 // 仅 126.net 直链可重写 ?param= 尺寸；injahow 等中转链接自带参数，必须原样保留
 function thumbUrl(u, size){
@@ -3096,15 +3185,18 @@ var WALL = (function(){
         '<span class="wall-time">0:00 / 0:00</span>'+
       '</div>'+
       '<span class="wall-bar"><i></i></span>';
+    if(!s){ el.classList.add("is-skel"); return {el,url:"",hidden:false}; }
     el.querySelector(".wall-copy strong").textContent=s.name||"";
     el.querySelector(".wall-copy small").textContent=s.artist||"";
     return {el,url:"",hidden:false};
   }
 
+  const SKEL_N=88;   // 骨架墙的卡片数量（够铺满一屏半，接口回来后再换成真实数量）
   function build(){
-    const n=songs.length;
+    const skel = !songs.length;
+    const n = skel ? SKEL_N : songs.length;
     if(!n){ world.innerHTML=""; nodes=[]; layout=[]; prevExpanded=-1; return; }
-    layout=pack(n,expanded);
+    layout=pack(n, skel ? -1 : expanded);
     let rebuilt=false;
     if(nodes.length!==n){
       rebuilt=true;
@@ -3114,6 +3206,7 @@ var WALL = (function(){
     }else{
       for(let i=0;i<n;i++){
         const s=songs[i], nd=nodes[i];
+        if(!s) continue;
         nd.el.querySelector(".wall-copy strong").textContent=s.name||"";
         nd.el.querySelector(".wall-copy small").textContent=s.artist||"";
         nd.el.querySelector(".wall-badge").textContent="正在播放 · "+(i+1)+"/"+n;
@@ -3138,6 +3231,7 @@ var WALL = (function(){
       el.style.width=r.w+"px"; el.style.height=r.h+"px";
       el.classList.toggle("is-expanded", i===expanded);
       el.classList.toggle("is-current", i===currentIdx);
+      el.classList.toggle("is-skel", skel);
       const tEl=el.querySelector(".wall-copy strong");
       const aEl=el.querySelector(".wall-copy small");
       tEl.style.fontSize = i===expanded ? "" : titleSize(r.w)+"px";
@@ -3259,14 +3353,12 @@ var WALL = (function(){
      清晰图最大只画到 620 CSS px，Retina 下也不会被拉伸。 */
   let zoomOpen=false, zoomTok=0, glowTok=0;
 
-  /* 从封面取平均主色，填到 --zoom-glow 做光晕；跨域失败就沿用默认紫罗兰 */
-  function setGlow(url){
-    if(!url||!zoom) return;
-    const tok=++glowTok;
+  /* 从封面取主色（按饱和度加权平均），全屏光晕与整墙氛围共用 */
+  function coverColor(url, cb){
+    if(!url) return;
     const im=new Image();
     im.crossOrigin="anonymous";
     im.onload=()=>{
-      if(tok!==glowTok) return;
       try{
         const c=document.createElement("canvas");
         c.width=c.height=16;
@@ -3284,11 +3376,32 @@ var WALL = (function(){
           r+=R*wt; gg+=G*wt; b+=B*wt; w+=wt;
         }
         if(w<1) return;
-        zoom.style.setProperty("--zoom-glow",
-          "rgb("+Math.round(r/w)+","+Math.round(gg/w)+","+Math.round(b/w)+")");
+        cb([Math.round(r/w),Math.round(gg/w),Math.round(b/w)]);
       }catch(_){ /* 封面 CDN 未开 CORS 时静默降级 */ }
     };
     im.src=url;
+  }
+
+  /* 全屏光晕颜色 */
+  function setGlow(url){
+    if(!url||!zoom) return;
+    const tok=++glowTok;
+    coverColor(url, rgb=>{
+      if(tok!==glowTok) return;
+      zoom.style.setProperty("--zoom-glow","rgb("+rgb.join(",")+")");
+    });
+  }
+
+  /* 整墙氛围：当前歌的封面主色写进 --wall-rgb，驱动 .wall-ambient 的两处光晕 */
+  let toneTok=0;
+  function setWallTone(url){
+    if(!root) return;
+    if(!url){ toneTok++; root.style.removeProperty("--wall-rgb"); return; }
+    const tok=++toneTok;
+    coverColor(url, rgb=>{
+      if(tok!==toneTok) return;
+      root.style.setProperty("--wall-rgb", rgb.join(","));
+    });
   }
 
   function openZoom(i){
@@ -3371,6 +3484,7 @@ var WALL = (function(){
   /* 卡片统一的激活逻辑：小卡点一下 → 就地放大 + 播放；按钮各走各的分支 */
   function activate(card, target, clientX){
     const i=+card.dataset.idx;
+    if(i<0 || !songs[i]){ if(typeof toast==="function") toast("歌曲加载中…"); return; }
     if(target.closest(".wall-playbtn")){ togglePlayback(); return; }
     if(target.closest(".wall-full")){
       // 全屏：封面铺满整屏并开始播放当前卡片的歌
@@ -3489,6 +3603,7 @@ var WALL = (function(){
     });
     edgeT=0;
     if(!edgeRaf) edgeRaf=requestAnimationFrame(edgeLoop);
+    setWallTone(currentIdx>=0 && songs[currentIdx] ? songs[currentIdx].pic : "");
     startTick();
   };
   api.close=()=>{
@@ -3496,16 +3611,26 @@ var WALL = (function(){
     if(edgeRaf){ cancelAnimationFrame(edgeRaf); edgeRaf=0; }
     edgeX=0; edgeY=0;
   };
+  /* 接口还没回来：先把整墙用骨架卡铺满，不留空白 */
+  api.pending=()=>{
+    if(songs.length) return;
+    expanded=-1; prevExpanded=-1;
+    build();
+    cam.scale=fitScale(); cam.x=0; cam.y=0;
+    clampCam(); applyCam(false);
+  };
   api.onSongs=()=>{
     if(!document.body.classList.contains("folia")) return;
     build();
     // 榜单切换后墙面高度会变，重新保证铺满
     cam.scale=fitScale();
     if(expanded>=0) panTo(expanded,false); else applyCam(false);
+    setWallTone(currentIdx>=0 && songs[currentIdx] ? songs[currentIdx].pic : "");
   };
   api.onSong=()=>{
     if(!document.body.classList.contains("folia")) return;
     if(expanded<0 || expanded!==currentIdx){ expanded=currentIdx; build(); panTo(expanded); }
+    setWallTone(songs[currentIdx] ? songs[currentIdx].pic : "");
     if(zoomOpen) openZoom(currentIdx);
     sync();
   };
