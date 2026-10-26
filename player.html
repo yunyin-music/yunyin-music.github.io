@@ -850,37 +850,35 @@
     touch-action:none;overscroll-behavior:none;
   }
   .wall-field:active{cursor:grabbing}
-  .wall-world{position:absolute;inset:0;transform-origin:0 0;will-change:transform}
-  .wall-world.animating{transition:transform .55s cubic-bezier(.32,.72,0,1)}
+  .wall-world{position:absolute;inset:0;transform-origin:0 0}
+  .wall-world.animating{transition:transform .55s cubic-bezier(.32,.72,0,1);will-change:transform}
+  .wall-world.dragging{will-change:transform}
 
   /* 海报卡（源码 .lattice-poster）：直角、无圆角、封面色打底 */
   .wall-card{
     position:absolute;overflow:hidden;padding:0;border:0;margin:0;
     border-radius:0;background-color:#161419;background-position:center;background-size:cover;
     text-align:left;color:#f7f4ee;cursor:pointer;contain:layout paint;
-    transition:left .5s cubic-bezier(.32,.72,0,1),top .5s cubic-bezier(.32,.72,0,1),
-      width .5s cubic-bezier(.32,.72,0,1),height .5s cubic-bezier(.32,.72,0,1),
-      filter .6s ease,box-shadow .6s ease,opacity .26s ease;
+    /* 默认无过渡：200 张卡同时动画会拖垮重排，只给正在收放的那一张加 .morph */
+    transition:none;
+  }
+  .wall-card.morph{
+    transition:left .42s cubic-bezier(.22,.68,0,1),top .42s cubic-bezier(.22,.68,0,1),
+      width .42s cubic-bezier(.22,.68,0,1),height .42s cubic-bezier(.22,.68,0,1),
+      box-shadow .42s ease;
   }
   .wall-card:hover{z-index:3;filter:saturate(1.08) brightness(1.05)}
   .wall-card.is-expanded{
     z-index:20;filter:none;
     box-shadow:0 42px 110px rgba(0,0,0,.74);
   }
-  /* 播放中：accent 2px 内描边 + 内发光（源码 .is-current::before） */
-  .wall-card.is-current::before{
-    content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
-    border:2px solid #fd5c47;
-    box-shadow:inset 0 0 0 1px rgba(0,0,0,.52), inset 0 0 15px -7px rgba(253,92,71,.46);
-  }
+  /* 播放中描边改由 .is-current:not(.is-expanded) 处理，这里不再重复 */
   .wall-shade{
     position:absolute;inset:0;z-index:1;pointer-events:none;
-    background:linear-gradient(180deg,rgba(0,0,0,.05) 34%,rgba(0,0,0,.24) 56%,rgba(0,0,0,.92) 100%);
+    background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,.42) 72%,rgba(0,0,0,.86) 100%);
   }
   .wall-card.is-expanded .wall-shade{
-    background:
-      linear-gradient(0deg,rgba(0,0,0,.86) 0%,rgba(0,0,0,.62) 14%,rgba(0,0,0,.26) 30%,rgba(0,0,0,0) 46%),
-      linear-gradient(90deg,rgba(0,0,0,.88),rgba(0,0,0,.50) 52%,rgba(0,0,0,.08));
+    background:linear-gradient(180deg,rgba(0,0,0,.28) 0%,rgba(0,0,0,.06) 26%,rgba(0,0,0,.34) 66%,rgba(0,0,0,.86) 100%);
   }
   /* 背景卡安静 tint，悬停/播放中/展开时揭开（源码 .lattice-poster-tint） */
   .wall-tint{
@@ -889,43 +887,38 @@
   }
   .wall-card:hover .wall-tint,.wall-card.is-current .wall-tint,
   .wall-card.is-expanded .wall-tint{opacity:0}
-  /* 序号徽章（源码 .lattice-poster-badge）：11px/800/tabular/.12em，直角 */
+  /* 徽章：仅展开卡显示「正在播放 · 4/6」小胶囊 */
   .wall-badge{
-    position:absolute;top:14px;left:14px;z-index:6;padding:0;background:none;
-    color:rgba(247,244,238,.55);font-size:11px;font-weight:800;
-    letter-spacing:.12em;font-variant-numeric:tabular-nums;
+    position:absolute;top:12px;left:12px;z-index:6;display:none;
+    padding:4px 8px;background:rgba(0,0,0,.62);color:rgba(247,244,238,.86);
+    font-size:10px;font-weight:700;letter-spacing:.06em;font-variant-numeric:tabular-nums;
   }
-  .wall-card.is-current .wall-badge{color:#fd5c47}
-  .wall-card.is-expanded .wall-badge{opacity:.7;color:rgba(247,244,238,.55)}
-  /* 文案（源码 .lattice-poster-copy）：右下角超大紧排标题 */
+  .wall-card.is-expanded .wall-badge{display:inline-block}
+  /* 卡片文案：左下角小字标题 + 歌手（视频里每张小卡都有） */
   .wall-copy{
-    position:absolute;left:17px;right:17px;bottom:15px;z-index:6;
-    display:flex;flex-direction:column;gap:4px;
+    position:absolute;left:9px;right:9px;bottom:8px;z-index:6;
+    display:flex;flex-direction:column;gap:2px;
   }
-  .wall-card:hover .wall-badge,.wall-card.is-current .wall-badge{opacity:1}
   .wall-copy strong{
-    font-weight:700;line-height:.96;letter-spacing:-.045em;color:#f7f4ee;
-    text-shadow:0 2px 18px rgba(0,0,0,.55);
-    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
-    text-wrap:balance;
+    font-weight:700;line-height:1.14;letter-spacing:-.02em;color:#f7f4ee;
+    text-shadow:0 1px 8px rgba(0,0,0,.7);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
   }
   .wall-copy small{
-    font-size:13px;font-weight:650;opacity:.72;color:#f7f4ee;
+    font-weight:500;opacity:.7;color:#f7f4ee;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    text-shadow:0 1px 6px rgba(0,0,0,.7);
   }
-  /* 展开卡：标题/歌手移到卡片左上（源码 .lattice-poster.is-expanded .lattice-lyric-metadata top:74px） */
-  .wall-card.is-expanded .wall-copy{top:74px;right:100px;bottom:auto;left:32px;gap:2px}
+  /* 展开卡：大标题压在左下，歌手紧随其下 */
+  .wall-card.is-expanded .wall-copy{top:auto;right:28px;bottom:46px;left:26px;gap:4px}
   .wall-card.is-expanded .wall-copy strong{
-    max-width:100%;font-size:22px;line-height:1.2;-webkit-line-clamp:1;
+    font-size:clamp(26px,3.2vw,44px);line-height:1;letter-spacing:-.03em;
+    -webkit-line-clamp:1;text-shadow:0 2px 20px rgba(0,0,0,.6);
   }
-  .wall-card.is-expanded .wall-copy small{margin-top:2px;font-size:13px}
+  .wall-card.is-expanded .wall-copy small{font-size:13px;opacity:.82}
 
-  /* 歌词区（源码 .lattice-lyrics inset:128px 24px 110px）：三行浮层，当前行放大 */
-  .wall-lrc{
-    position:absolute;inset:128px 24px 110px;z-index:4;pointer-events:none;
-    display:none;flex-direction:column;justify-content:center;gap:14px;
-  }
-  .wall-card.is-expanded .wall-lrc{display:flex}
+  /* 墙上不显示歌词（对齐视频：歌词在播放页里看） */
+  .wall-lrc{display:none!important}
   .wall-lrc .ln{
     font-size:clamp(17px,2.1vw,32px);line-height:1.26;font-weight:600;
     color:rgba(247,244,238,.26);text-shadow:0 2px 20px rgba(0,0,0,.6);
@@ -935,32 +928,54 @@
     color:#f7f4ee;font-size:clamp(23px,3vw,44px);font-weight:700;letter-spacing:-.02em;
   }
 
-  /* 底部控制条（源码 .lattice-poster-controls）：播放键在左，进度条贴卡片底边 */
+  /* 展开卡底部：一排小图标（播放/上一首/下一首）+ 时间，直接压在封面上 */
   .wall-ctrl{
-    position:absolute;left:32px;right:24px;bottom:28px;z-index:7;
-    display:none;align-items:center;gap:14px;
+    position:absolute;left:24px;right:24px;bottom:16px;z-index:7;
+    display:none;align-items:center;gap:12px;color:#f7f4ee;
   }
   .wall-card.is-expanded .wall-ctrl{display:flex}
   .wall-bar{
-    position:absolute;left:0;right:0;bottom:0;height:14px;z-index:7;
+    position:absolute;left:0;right:0;bottom:0;height:12px;z-index:7;
     background:transparent;display:none;cursor:pointer;
   }
   .wall-card.is-expanded .wall-bar{display:block}
-  .wall-bar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,.18)}
-  .wall-bar i{position:absolute;left:0;bottom:0;height:2px;width:0;background:#f7f4ee;display:block;z-index:1}
-  .wall-playbtn{
-    width:44px;height:44px;flex-shrink:0;border:0;border-radius:50%;
-    background:#f7f4ee;color:#070707;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;padding:0;
+  .wall-bar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,.2)}
+  .wall-bar i{position:absolute;left:0;bottom:0;height:2px;width:0;background:#8fe9e3;display:block;z-index:1}
+  .wall-playbtn,.wall-pn{
+    width:26px;height:26px;flex-shrink:0;border:0;background:transparent;padding:0;
+    color:#f7f4ee;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    opacity:.92;filter:drop-shadow(0 1px 4px rgba(0,0,0,.75));
   }
-  .wall-playbtn svg{width:18px;height:18px}
-  .wall-time{font-size:11px;opacity:.7;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .wall-playbtn:hover,.wall-pn:hover{opacity:1}
+  .wall-playbtn svg{width:15px;height:15px}
+  .wall-pn svg{width:15px;height:15px}
+  .wall-time{font-size:11px;opacity:.72;font-variant-numeric:tabular-nums;white-space:nowrap;
+    filter:drop-shadow(0 1px 4px rgba(0,0,0,.75))}
   .wall-open{
-    margin-left:auto;width:34px;height:34px;flex-shrink:0;border:0;background:transparent;
-    color:#f7f4ee;opacity:.75;cursor:pointer;padding:0;
+    margin-left:auto;width:26px;height:26px;flex-shrink:0;border:0;background:transparent;
+    color:#f7f4ee;opacity:.72;cursor:pointer;padding:0;
     display:flex;align-items:center;justify-content:center;
   }
   .wall-open:hover{opacity:1}
+  /* 展开卡右上角：全屏（打开播放页）按钮 */
+  .wall-full{
+    position:absolute;top:12px;right:12px;z-index:8;
+    width:30px;height:30px;border:0;padding:0;cursor:pointer;display:none;
+    align-items:center;justify-content:center;
+    background:rgba(0,0,0,.55);color:#f7f4ee;
+  }
+  .wall-card.is-expanded .wall-full{display:flex}
+  .wall-full:hover{background:rgba(0,0,0,.78)}
+  .wall-full svg{width:14px;height:14px}
+  /* 展开卡：细白描边（视频里的那圈亮边） */
+  .wall-card.is-expanded{
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.55),0 30px 80px rgba(0,0,0,.7);
+  }
+  /* 正在播放但不是展开态的小卡：一圈青色描边 */
+  .wall-card.is-current:not(.is-expanded){
+    box-shadow:inset 0 0 0 1px rgba(143,233,227,.85);
+  }
+  .wall-card.is-current:not(.is-expanded)::before{display:none}
 
   /* 左上返回（源码 .lattice-back） */
   .wall-back{
@@ -973,12 +988,12 @@
   .wall-back:hover{background:rgba(0,0,0,.72);border-color:rgba(255,255,255,.3)}
   @media (max-width:640px){
     .wall-back{top:calc(14px + env(safe-area-inset-top,0px));left:calc(14px + env(safe-area-inset-left,0px));width:36px;height:36px}
-    .wall-card.is-expanded .wall-copy{top:112px;left:20px;right:32px}
-    .wall-ctrl{left:20px;right:16px;bottom:20px;gap:10px}
-    .wall-lrc{inset:160px 20px 164px;gap:10px}
-    .wall-badge{top:10px;left:10px;font-size:10px;padding:4px 6px}
-    .wall-copy{left:11px;right:11px;bottom:11px;gap:3px}
-    .wall-copy small{font-size:11px}
+    .wall-card.is-expanded .wall-copy{left:14px;right:16px;bottom:38px;gap:2px}
+    .wall-card.is-expanded .wall-copy strong{font-size:26px}
+    .wall-card.is-expanded .wall-copy small{font-size:11px}
+    .wall-ctrl{left:14px;right:14px;bottom:10px;gap:8px}
+    .wall-badge{top:8px;left:8px;font-size:9px;padding:3px 6px}
+    .wall-copy{left:6px;right:6px;bottom:6px;gap:1px}
   }
 
 </style>
@@ -2415,7 +2430,7 @@ const listFx = makeParticles(document.getElementById("listParticles"));
 const ppFx = makeParticles(document.getElementById("ppParticles"));
 function syncParticles(){
   const folia = document.body.classList.contains("folia");
-  folia ? listFx.start() : listFx.stop();
+  listFx.stop(); // 海报墙全屏覆盖，列表粒子不必再空转
   playPage.classList.contains("open") ? ppFx.start() : ppFx.stop();
 }
 
@@ -2802,17 +2817,19 @@ let foliaView = !!store.get('yy_folia', false);
 
 /* ================= Folia 海报墙引擎 =================
    对齐 Folia 源码结构（PosterWall.tsx / wall.css）：
-   · CELL=128 世界单位、GAP=8，混合尺寸拼贴（不用 CSS grid，用绝对定位 + 镜头 transform）
    · 镜头缩放 0.52 / 0.64 / 0.76（<640 / <1100 / 其余），指针拖拽平移、滚轮缩放
-   · 只渲染视口附近（overscan 500）的卡片，屏外清图，控制 200 张卡的绘制开销
-   · 正在播放/点选的卡就地放大成 5x5 播放器：歌词三行浮层 + 播放键 + 进度条 */
+   · 密铺的封面网格（CELL 96 / GAP 4 / 19 列），每张卡拉近才看清的小字标题
+   · 正在播放/点选的卡就地放大成 5x5 方形播放卡：细白描边 + 左下大标题 + 底部控制行
+   · 入场时整面墙从模糊放大拉回清晰（对齐视频开头的过渡） */
 var WALL = (function(){
-  const CELL=128, GAP=8, OVERSCAN=500, GROW_W=5, GROW_H=5, COLS=14;
-  // 混合尺寸拼贴模板：4x1 横幅 / 2x2 方卡 / 1x2 竖幅 / 1x1 小卡（对齐 Folia 的块模板节奏）
-  const SPANS=[[4,1],[1,1],[2,2],[1,1],[1,2],[2,2],[1,1],[1,1],[4,1],[1,2],[1,1],[2,2],[1,1],[1,1],[2,1],[1,1]];
+  const CELL=96, GAP=4, OVERSCAN=400, GROW_W=5, GROW_H=5, COLS=19;
+  // 密铺模板（对齐视频）：大量 1x1 小卡，少量 2x1 宽幅与 2x2/1x2 大卡
+  const SPANS=[[1,1],[1,1],[2,1],[1,1],[2,2],[1,1],[1,1],[1,2],[1,1],[2,1],[1,1],[1,1],[2,2],[1,1],[1,2],[1,1],[2,1],[1,1],[1,1],[1,1],[2,1],[1,1],[1,2],[1,1]];
   const ICON_PLAY='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
   const ICON_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
-  const ICON_EXPAND='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
+  const ICON_EXPAND='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H3v6M15 3h6v6M3 15v6h6M21 15v6h-6"/></svg>';
+  const ICON_PREV='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zm3 7l9 7V5z"/></svg>';
+  const ICON_NEXT='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM15 12L6 19V5z"/></svg>';
 
   const root=document.getElementById("foliaWall");
   const field=document.getElementById("wallField");
@@ -2822,13 +2839,14 @@ var WALL = (function(){
   if(!root||!field||!world||!backBtn) return api;
 
   let cam={x:34,y:80,scale:0.76};
-  let layout=[], nodes=[], expanded=-1;
+  let layout=[], nodes=[], expanded=-1, prevExpanded=-1, morphTimer=0;
   let dragging=false, didDrag=false, pt=null, cam0=null;
   let cullRaf=0, tickTimer=0;
 
   const fmt=s=>{s=Math.max(0,Math.floor(s||0));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
   const scaleFor=()=>{const w=innerWidth;return w<640?0.52:(w<1100?0.64:0.76)};
-  const titleSize=w=>Math.max(12,Math.min(44,Math.round(w*0.17)));
+  const titleSize=w=>Math.max(10,Math.min(30,Math.round(w*0.135)));
+  const artistSize=w=>Math.max(8,Math.min(14,Math.round(w*0.105)));
 
   /* —— 贪心拼贴：先按列表顺序铺一遍；放大时用基础位置作锚点预留 4x4，其余重新流动 —— */
   function pack(count, growIdx){
@@ -2863,6 +2881,8 @@ var WALL = (function(){
           }
         }
       }
+      // 放大卡至少下移 3 行，保证它上方也有满墙内容（视频里放大卡四周都是铺满的）
+      ar=Math.max(3, ar);
       mark(ar,ac,GROW_W,GROW_H);
       out[growIdx]=rectOf(ar,ac,GROW_W,GROW_H);
     }
@@ -2885,13 +2905,14 @@ var WALL = (function(){
     el.dataset.idx=i;
     el.innerHTML=
       '<span class="wall-shade"></span><span class="wall-tint"></span>'+
-      '<span class="wall-badge">'+String(i+1).padStart(2,"0")+'</span>'+
+      '<span class="wall-badge">正在播放</span>'+
+      '<button class="wall-full" aria-label="全屏播放">'+ICON_EXPAND+'</button>'+
       '<span class="wall-copy"><strong></strong><small></small></span>'+
-      '<div class="wall-lrc"></div>'+
       '<div class="wall-ctrl">'+
+        '<button class="wall-pn wall-prev" aria-label="上一首">'+ICON_PREV+'</button>'+
         '<button class="wall-playbtn" aria-label="播放或暂停">'+ICON_PLAY+'</button>'+
-        '<span class="wall-time">0:00</span>'+
-        '<button class="wall-open" aria-label="打开播放页">'+ICON_EXPAND+'</button>'+
+        '<button class="wall-pn wall-next" aria-label="下一首">'+ICON_NEXT+'</button>'+
+        '<span class="wall-time">0:00 / 0:00</span>'+
       '</div>'+
       '<span class="wall-bar"><i></i></span>';
     el.querySelector(".wall-copy strong").textContent=s.name||"";
@@ -2901,9 +2922,11 @@ var WALL = (function(){
 
   function build(){
     const n=songs.length;
-    if(!n){ world.innerHTML=""; nodes=[]; layout=[]; return; }
+    if(!n){ world.innerHTML=""; nodes=[]; layout=[]; prevExpanded=-1; return; }
     layout=pack(n,expanded);
+    let rebuilt=false;
     if(nodes.length!==n){
+      rebuilt=true;
       world.innerHTML="";
       nodes=[];
       for(let i=0;i<n;i++){ const nd=makeNode(i); world.appendChild(nd.el); nodes.push(nd); }
@@ -2912,9 +2935,21 @@ var WALL = (function(){
         const s=songs[i], nd=nodes[i];
         nd.el.querySelector(".wall-copy strong").textContent=s.name||"";
         nd.el.querySelector(".wall-copy small").textContent=s.artist||"";
-        nd.el.querySelector(".wall-badge").textContent=String(i+1).padStart(2,"0");
+        nd.el.querySelector(".wall-badge").textContent="正在播放 · "+(i+1)+"/"+n;
         if(nd.url!==(s.pic||"")){ nd.url=""; nd.el.style.backgroundImage=""; }
       }
+    }
+    // 只让「刚放大」和「刚缩回」的两张卡做尺寸过渡，其余瞬间归位，避免 200 张同时重排
+    const morphing = !rebuilt && prevExpanded!==expanded;
+    if(morphing){
+      [prevExpanded, expanded].forEach(k=>{
+        if(k<0 || !nodes[k]) return;
+        nodes[k].el.classList.add("morph");
+        // 放大卡换高清图，缩回卡换小图（省带宽也省解码）
+        nodes[k].url=""; nodes[k].el.style.backgroundImage="";
+      });
+    }else{
+      for(let i=0;i<n;i++) nodes[i].el.classList.remove("morph");
     }
     for(let i=0;i<n;i++){
       const el=nodes[i].el, r=layout[i];
@@ -2925,9 +2960,14 @@ var WALL = (function(){
       const tEl=el.querySelector(".wall-copy strong");
       const aEl=el.querySelector(".wall-copy small");
       tEl.style.fontSize = i===expanded ? "" : titleSize(r.w)+"px";
-      aEl.style.fontSize = i===expanded ? "" : Math.max(9, Math.min(15, r.w*0.08))+"px";
-      el.querySelector(".wall-lrc").textContent="";
-      el.querySelector(".wall-lrc").dataset.sig="";
+      aEl.style.fontSize = i===expanded ? "" : artistSize(r.w)+"px";
+    }
+    prevExpanded=expanded;
+    if(morphing){
+      clearTimeout(morphTimer);
+      morphTimer=setTimeout(()=>{
+        for(let i=0;i<nodes.length;i++) nodes[i].el.classList.remove("morph");
+      },480);
     }
     cull();
   }
@@ -2946,13 +2986,28 @@ var WALL = (function(){
         if(nd.hidden){ nd.el.style.display=""; nd.hidden=false; }
         if(!nd.url && songs[i] && songs[i].pic){
           nd.url=songs[i].pic;
-          nd.el.style.backgroundImage='url("'+thumbUrl(songs[i].pic, i===expanded?640:360)+'")';
+          nd.el.style.backgroundImage='url("'+thumbUrl(songs[i].pic, i===expanded?640:200)+'")';
         }
       }else if(!nd.hidden){ nd.el.style.display="none"; nd.hidden=true; }
     }
   }
 
+  function gridSize(){
+    let maxB=0;
+    for(let i=0;i<layout.length;i++){ const r=layout[i]; if(r) maxB=Math.max(maxB, r.y+r.h); }
+    return {w:COLS*(CELL+GAP)-GAP, h:maxB};
+  }
+  /* 镜头边界：整面墙必须始终铺满视口（视频里没有露出空白） */
+  function clampCam(){
+    const g=gridSize();
+    const gw=g.w*cam.scale, gh=g.h*cam.scale;
+    const vw=innerWidth, vh=innerHeight;
+    cam.x = gw<=vw ? (vw-gw)/2 : Math.min(0, Math.max(vw-gw, cam.x));
+    cam.y = gh<=vh ? (vh-gh)/2 : Math.min(0, Math.max(vh-gh, cam.y));
+  }
+
   function applyCam(animate){
+    clampCam();
     if(animate){
       world.classList.add("animating");
       setTimeout(()=>world.classList.remove("animating"),620);
@@ -2972,29 +3027,6 @@ var WALL = (function(){
     applyCam(animate!==false);
   }
 
-  function drawLrc(){
-    const nd=nodes[expanded];
-    if(!nd) return;
-    const box=nd.el.querySelector(".wall-lrc");
-    if(!box) return;
-    if(!lyrics.length){ if(box.dataset.sig!=="none"){ box.textContent=""; box.dataset.sig="none"; } return; }
-    const cur=audio.currentTime||0;
-    let idx=-1;
-    for(let i=0;i<lyrics.length;i++){ if(lyrics[i].t<=cur) idx=i; else break; }
-    const sig=idx+"|"+lyrics.length;
-    if(box.dataset.sig===sig) return;
-    box.dataset.sig=sig;
-    box.textContent="";
-    for(let k=-1;k<=2;k++){
-      const l=lyrics[idx+k];
-      if(!l) continue;
-      const d=document.createElement("div");
-      d.className="ln"+(k===0?" cur":"");
-      d.textContent=l.content||"";
-      box.appendChild(d);
-    }
-  }
-
   function tick(){
     if(!document.body.classList.contains("folia")) return;
     const nd=nodes[expanded];
@@ -3010,7 +3042,6 @@ var WALL = (function(){
       const paused=!!audio.paused, key=String(paused);
       if(pb.dataset.p!==key){ pb.dataset.p=key; pb.innerHTML=paused?ICON_PLAY:ICON_PAUSE; }
     }
-    drawLrc();
   }
   function startTick(){ if(!tickTimer) tickTimer=setInterval(tick,240); }
   function stopTick(){ if(tickTimer){ clearInterval(tickTimer); tickTimer=0; } }
@@ -3031,6 +3062,7 @@ var WALL = (function(){
     if(e.button) return;
     if(e.target.closest(".wall-ctrl")) return;
     dragging=true; didDrag=false; pt={x:e.clientX,y:e.clientY}; cam0={x:cam.x,y:cam.y};
+    world.classList.add("dragging");
     try{ field.setPointerCapture(e.pointerId); }catch(_){}
   });
   field.addEventListener("pointermove",e=>{
@@ -3040,7 +3072,7 @@ var WALL = (function(){
     cam.x=cam0.x+dx; cam.y=cam0.y+dy;
     applyCam();
   });
-  const endDrag=()=>{ dragging=false; };
+  const endDrag=()=>{ dragging=false; world.classList.remove("dragging"); };
   field.addEventListener("pointerup",endDrag);
   field.addEventListener("pointercancel",endDrag);
 
@@ -3059,7 +3091,13 @@ var WALL = (function(){
     if(!card) return;
     const i=+card.dataset.idx;
     if(e.target.closest(".wall-playbtn")){ togglePlayback(); return; }
-    if(e.target.closest(".wall-open")){ const b=document.getElementById("ppOpenBtn"); if(b) b.click(); return; }
+    if(e.target.closest(".wall-full")){
+      if(i!==currentIdx && typeof playSong==="function") playSong(i);
+      if(typeof openPlayPage==="function") openPlayPage();
+      return;
+    }
+    if(e.target.closest(".wall-prev")){ if(typeof playSong==="function"){ const p=(currentIdx-1+songs.length)%songs.length; playSong(p); } return; }
+    if(e.target.closest(".wall-next")){ if(typeof playSong==="function"){ const p=(currentIdx+1)%songs.length; playSong(p); } return; }
     if(e.target.closest(".wall-bar")){
       const sk=card.querySelector(".wall-bar");
       const rc=sk.getBoundingClientRect();
@@ -3067,15 +3105,17 @@ var WALL = (function(){
       if(isFinite(audio.duration)&&audio.duration>0){ audio.currentTime=p*audio.duration; tick(); }
       return;
     }
-    if(i===expanded){
-      if(i===currentIdx) togglePlayback();
+    if(i===currentIdx && i===expanded){ togglePlayback(); return; }
+    // 任意卡：点一下就直接播（同时就地放大成播放卡）
+    if(i!==expanded){
+      expanded=i;
+      build();
+      panTo(i);
+      if(i!==currentIdx && typeof playSong==="function") playSong(i);
+      else sync();
       return;
     }
-    expanded=i;
-    build();
-    panTo(expanded);
-    if(i!==currentIdx) playSong(i);
-    else sync();
+    if(i!==currentIdx && typeof playSong==="function") playSong(i);
   });
 
   backBtn.addEventListener("click",()=>{ if(typeof setFolia==="function") setFolia(false); });
@@ -3091,10 +3131,24 @@ var WALL = (function(){
 
   /* —— 对外接口 —— */
   api.open=()=>{
-    cam={x:34,y:80,scale:scaleFor()};
     if(expanded<0 && currentIdx>=0) expanded=currentIdx;
     build();
-    if(expanded>=0) panTo(expanded,false); else applyCam(false);
+    // 入场：整面墙从「模糊 + 放大 + 透明」拉回清晰（对齐视频开头那段过渡）
+    world.classList.remove("animating");
+    world.style.transition="none";
+    world.style.filter="blur(18px)";
+    world.style.opacity="0";
+    const s0=scaleFor();
+    cam={x:34,y:80,scale:s0*1.2};
+    applyCam(false);
+    requestAnimationFrame(()=>{
+      world.style.transition="filter .75s ease, opacity .6s ease, transform .85s cubic-bezier(.22,.68,0,1)";
+      world.style.filter="none";
+      world.style.opacity="1";
+      cam.scale=s0;
+      if(expanded>=0) panTo(expanded,false); else applyCam(false);
+      setTimeout(()=>{ world.style.transition=""; },950);
+    });
     startTick();
   };
   api.close=()=>{ stopTick(); };
