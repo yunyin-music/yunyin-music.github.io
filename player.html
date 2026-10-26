@@ -2,7 +2,10 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="云音" />
 <title>云音播放器 - 在线听歌 | 热歌榜 网红热歌 免费音乐</title>
 <meta name="description" content="云音在线音乐播放器，免费在线听歌，包含热歌榜、新歌榜、飙升榜、原创榜、网红热歌榜、电音榜，支持歌词同步、我的收藏、最近播放、私人FM、推荐歌单。" />
 <meta name="keywords" content="在线播放器,在线听歌,免费音乐,热歌榜,网红热歌榜,飙升榜,歌词同步,音乐播放器" />
@@ -76,9 +79,14 @@
     grid-template-columns:260px 1fr;
     grid-template-rows:1fr auto;
     height:100vh;
+    height:100dvh; /* iOS Safari 动态视口：地址栏收起/展开时高度自适应，播放栏不被遮挡 */
     gap:14px;
     padding:14px 14px 0 14px;
   }
+  html{-webkit-text-size-adjust:100%}
+  body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+  /* iOS 惯性滚动：长列表/歌词区丝滑 */
+  .song-list,.side-scroll,.q-list,.pp-lyrics,.charts{-webkit-overflow-scrolling:touch}
   /* ---------- Sidebar ---------- */
   .sidebar{
     grid-row:1;
@@ -415,7 +423,7 @@
 
   /* ---------- Play page (vinyl + lyrics + comments) ---------- */
   .playpage{
-    position:fixed;top:14px;left:14px;right:14px;bottom:92px;
+    position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:14px;right:14px;bottom:calc(92px + env(safe-area-inset-bottom,0px));
     --glow1:167,139,250;--glow2:124,58,237;
     background:#0b0b0d;border-radius:var(--radius);
     border:1px solid var(--border);
@@ -681,6 +689,12 @@
   @media (hover:none){
     .song-row:hover{transform:none;border-color:transparent}
     .pl-tile:hover{transform:none}
+    .chart-item:hover{background:none;color:var(--text-2)}
+    .chart-item.active:hover{background:linear-gradient(90deg,rgba(167,139,250,.18),rgba(167,139,250,.03));color:var(--text)}
+  }
+  /* iOS：输入框字号<16px 聚焦时会强制放大页面，触屏下一律 16px */
+  @media (pointer:coarse){
+    .search input{font-size:16px}
   }
   .toast{
     position:fixed;bottom:110px;left:50%;transform:translateX(-50%) translateY(20px);
