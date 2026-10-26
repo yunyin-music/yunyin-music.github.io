@@ -995,9 +995,8 @@
     opacity:0;transition:opacity .32s ease;
   }
   .wall-zoom.on{
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:clamp(14px,2.4vh,24px);
-    padding:calc(58px + env(safe-area-inset-top,0px)) 18px calc(26px + env(safe-area-inset-bottom,0px));
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+    padding:calc(58px + env(safe-area-inset-top,0px)) 18px calc(20px + env(safe-area-inset-bottom,0px));
   }
   .wall-zoom.show{opacity:1}
   .wall-zoom-bg{
@@ -1013,7 +1012,8 @@
   }
   .wall-zoom-art{
     position:relative;z-index:1;
-    width:min(78vw,62vh,640px);aspect-ratio:1/1;
+    width:min(78vw,56vh,620px);aspect-ratio:1/1;
+    margin-bottom:clamp(14px,2.4vh,22px);
     border-radius:8px;background-color:#151318;background-position:center;background-size:cover;
     box-shadow:0 40px 90px rgba(0,0,0,.62), inset 0 0 0 1px rgba(255,255,255,.10);
     transform:scale(.96);opacity:0;
@@ -1032,16 +1032,72 @@
   .wall-zoom-info{
     position:relative;z-index:1;max-width:min(92vw,760px);
     display:flex;flex-direction:column;align-items:center;gap:5px;
+    margin-bottom:clamp(10px,1.8vh,18px);
     color:#fff;text-align:center;pointer-events:none;
     text-shadow:0 2px 18px rgba(0,0,0,.8);
   }
   .wall-zoom-info strong{font-size:clamp(19px,2.1vw,28px);font-weight:800;letter-spacing:-.02em;line-height:1.2}
   .wall-zoom-info small{font-size:12.5px;opacity:.78}
+  /* 封面主色光晕：颜色由 canvas 从封面上取平均色，填在 --zoom-glow 上 */
+  .wall-zoom-glow{
+    position:absolute;left:50%;top:46%;z-index:0;pointer-events:none;
+    width:min(118vmin,1100px);height:min(118vmin,1100px);
+    transform:translate(-50%,-50%);border-radius:50%;
+    background:radial-gradient(circle,var(--zoom-glow,rgb(120,96,255)) 0%,transparent 62%);
+    filter:blur(52px);opacity:.4;
+    transition:opacity .5s ease;
+  }
+  .wall-zoom.show .wall-zoom-glow{opacity:.5}
+  /* 进度条 */
+  .wall-zoom-prog{
+    position:relative;z-index:1;width:min(86vw,400px);height:16px;
+    display:flex;align-items:center;cursor:pointer;margin-bottom:2px;
+  }
+  .wall-zoom-prog::before{
+    content:"";position:absolute;left:0;right:0;height:3px;border-radius:2px;
+    background:rgba(255,255,255,.22);
+  }
+  .wall-zoom-prog i{
+    position:relative;display:block;height:3px;width:0;border-radius:2px;
+    background:#8fe9e3;box-shadow:0 0 10px rgba(143,233,227,.55);
+  }
+  .wall-zoom-time{
+    position:relative;z-index:1;margin-bottom:clamp(10px,1.8vh,16px);
+    font-size:11px;letter-spacing:.04em;color:rgba(255,255,255,.62);
+    font-variant-numeric:tabular-nums;
+  }
+  /* 播放控制 */
+  .wall-zoom-ctrl{position:relative;z-index:1;display:flex;align-items:center;gap:20px}
+  .wall-zoom-ctrl button{
+    display:flex;align-items:center;justify-content:center;padding:0;border:0;
+    background:transparent;color:#fff;cursor:pointer;
+    transition:transform .18s ease, background .18s ease, opacity .18s ease;
+  }
+  .wall-zoom-ctrl button:active{transform:scale(.94)}
+  .wall-zoom-ctrl .z-pn{
+    width:38px;height:38px;border-radius:50%;
+    background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);
+  }
+  .wall-zoom-ctrl .z-pn:hover{background:rgba(255,255,255,.18)}
+  .wall-zoom-ctrl .z-pn svg{width:17px;height:17px}
+  .wall-zoom-ctrl .z-play{
+    width:54px;height:54px;border-radius:50%;
+    background:#f4f1ea;color:#101012;
+    box-shadow:0 10px 26px rgba(0,0,0,.5);
+  }
+  .wall-zoom-ctrl .z-play:hover{background:#fff}
+  .wall-zoom-ctrl .z-play svg{width:21px;height:21px}
   @media (max-width:640px){
-    .wall-zoom.on{padding:calc(54px + env(safe-area-inset-top,0px)) 14px calc(20px + env(safe-area-inset-bottom,0px));gap:14px}
-    .wall-zoom-info{gap:3px}
-    .wall-zoom-info strong{font-size:19px}
+    .wall-zoom.on{padding:calc(54px + env(safe-area-inset-top,0px)) 14px calc(16px + env(safe-area-inset-bottom,0px))}
+    .wall-zoom-art{width:min(80vw,50vh,440px);margin-bottom:14px}
+    .wall-zoom-info{gap:3px;margin-bottom:10px}
+    .wall-zoom-info strong{font-size:18px}
     .wall-zoom-info small{font-size:11px}
+    .wall-zoom-prog{width:min(88vw,340px)}
+    .wall-zoom-time{margin-bottom:8px;font-size:10px}
+    .wall-zoom-ctrl{gap:16px}
+    .wall-zoom-ctrl .z-pn{width:34px;height:34px}
+    .wall-zoom-ctrl .z-play{width:48px;height:48px}
     .wall-zoom-close{top:calc(12px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));width:34px;height:34px;font-size:18px}
   }
   @media (max-width:640px){
@@ -1066,14 +1122,24 @@
     <div class="wall-world" id="wallWorld"></div>
   </div>
   <button class="wall-back" id="wallBack" aria-label="返回列表">‹</button>
-  <!-- 全屏播放卡：模糊底 + 居中清晰封面（不再把低分辨率封面拉满全屏） -->
+  <!-- 全屏播放卡：模糊底 + 居中清晰封面 + 播放控制（不再把低分辨率封面拉满全屏） -->
   <div class="wall-zoom" id="wallZoom" aria-hidden="true">
     <div class="wall-zoom-bg" id="wallZoomBg"></div>
+    <div class="wall-zoom-glow" id="wallZoomGlow"></div>
     <div class="wall-zoom-art" id="wallZoomImg"></div>
     <button class="wall-zoom-close" id="wallZoomClose" aria-label="退出全屏">×</button>
     <div class="wall-zoom-info">
       <strong id="wallZoomTitle"></strong>
       <small id="wallZoomArtist"></small>
+    </div>
+    <div class="wall-zoom-prog" id="wallZoomBar" aria-label="播放进度">
+      <i id="wallZoomProg"></i>
+    </div>
+    <div class="wall-zoom-time" id="wallZoomTime">0:00 / 0:00</div>
+    <div class="wall-zoom-ctrl">
+      <button class="z-pn" id="wallZoomPrev" aria-label="上一首"></button>
+      <button class="z-play" id="wallZoomPlay" aria-label="播放/暂停"></button>
+      <button class="z-pn" id="wallZoomNext" aria-label="下一首"></button>
     </div>
   </div>
 </div>
@@ -2909,6 +2975,16 @@ var WALL = (function(){
   const zoomTitle=document.getElementById("wallZoomTitle");
   const zoomArtist=document.getElementById("wallZoomArtist");
   const zoomClose=document.getElementById("wallZoomClose");
+  const zoomGlow=document.getElementById("wallZoomGlow");
+  const zoomBar=document.getElementById("wallZoomBar");
+  const zoomProg=document.getElementById("wallZoomProg");
+  const zoomTime=document.getElementById("wallZoomTime");
+  const zoomPrev=document.getElementById("wallZoomPrev");
+  const zoomPlay=document.getElementById("wallZoomPlay");
+  const zoomNext=document.getElementById("wallZoomNext");
+  if(zoomPrev) zoomPrev.innerHTML=ICON_PREV;
+  if(zoomNext) zoomNext.innerHTML=ICON_NEXT;
+  if(zoomPlay) zoomPlay.innerHTML=ICON_PLAY;
   const api={onSongs(){},onSong(){},sync(){},open(){},close(){}};
   if(!root||!field||!world||!backBtn) return api;
 
@@ -3112,10 +3188,17 @@ var WALL = (function(){
 
   function tick(){
     if(!document.body.classList.contains("folia")) return;
+    const zDur=isFinite(audio.duration)?audio.duration:0;
+    if(zoomOpen){
+      const zp=zDur>0?Math.min(100,(audio.currentTime||0)/zDur*100):0;
+      if(zoomProg) zoomProg.style.width=zp+"%";
+      if(zoomTime) zoomTime.textContent=fmt(audio.currentTime)+" / "+fmt(zDur);
+      if(zoomPlay) zoomPlay.innerHTML = audio.paused?ICON_PLAY:ICON_PAUSE;
+    }
     const nd=nodes[expanded];
     if(!nd) return;
     const el=nd.el;
-    const dur=isFinite(audio.duration)?audio.duration:0;
+    const dur=zDur;
     const bar=el.querySelector(".wall-bar i");
     if(bar) bar.style.width=(dur>0?Math.min(100,(audio.currentTime||0)/dur*100):0)+"%";
     const tm=el.querySelector(".wall-time");
@@ -3142,8 +3225,41 @@ var WALL = (function(){
 
   /* —— 全屏播放卡：模糊底 + 居中清晰封面 ——
      先上 640 缩略图保证秒开，再预载网易原图（上限 1417px）替换；
-     清晰图最大只画到 640 CSS px，Retina 下也不会被拉伸。 */
-  let zoomOpen=false, zoomTok=0;
+     清晰图最大只画到 620 CSS px，Retina 下也不会被拉伸。 */
+  let zoomOpen=false, zoomTok=0, glowTok=0;
+
+  /* 从封面取平均主色，填到 --zoom-glow 做光晕；跨域失败就沿用默认紫罗兰 */
+  function setGlow(url){
+    if(!url||!zoom) return;
+    const tok=++glowTok;
+    const im=new Image();
+    im.crossOrigin="anonymous";
+    im.onload=()=>{
+      if(tok!==glowTok) return;
+      try{
+        const c=document.createElement("canvas");
+        c.width=c.height=16;
+        const g=c.getContext("2d",{willReadFrequently:true});
+        g.drawImage(im,0,0,16,16);
+        const d=g.getImageData(0,0,16,16).data;
+        let r=0,gg=0,b=0,w=0;
+        for(let p=0;p<d.length;p+=4){
+          if(d[p+3]<128) continue;
+          const R=d[p],G=d[p+1],B=d[p+2];
+          const mx=Math.max(R,G,B), mn=Math.min(R,G,B);
+          if(mx<28||mn>234) continue;           // 剔除近黑/近白，避免取到一片灰
+          const sat=mx?(mx-mn)/mx:0;
+          const wt=0.4+sat;                     // 越鲜艳权重越高
+          r+=R*wt; gg+=G*wt; b+=B*wt; w+=wt;
+        }
+        if(w<1) return;
+        zoom.style.setProperty("--zoom-glow",
+          "rgb("+Math.round(r/w)+","+Math.round(gg/w)+","+Math.round(b/w)+")");
+      }catch(_){ /* 封面 CDN 未开 CORS 时静默降级 */ }
+    };
+    im.src=url;
+  }
+
   function openZoom(i){
     const s=songs[i];
     if(!s||!zoom) return;
@@ -3152,22 +3268,27 @@ var WALL = (function(){
     const big=s.pic?thumbUrl(s.pic,1600):"";
     if(zoomBg) zoomBg.style.backgroundImage = small?'url("'+small+'")':"none";
     zoomImg.style.backgroundImage = small?'url("'+small+'")':"none";
+    zoom.style.setProperty("--zoom-glow","rgb(120,96,255)");
+    setGlow(small);
     if(big){
       const im=new Image();
       im.onload=()=>{
         if(tok!==zoomTok||!zoomOpen) return;
         if(zoomBg) zoomBg.style.backgroundImage='url("'+big+'")';
         zoomImg.style.backgroundImage='url("'+big+'")';
+        setGlow(big);
       };
       im.src=big;
     }
     zoomTitle.textContent=s.name||"";
     zoomArtist.textContent=s.artist||"";
+    if(zoomPlay) zoomPlay.innerHTML = audio.paused?ICON_PLAY:ICON_PAUSE;
     zoomOpen=true;
     edgeX=0; edgeY=0;
     zoom.classList.add("on");
     zoom.setAttribute("aria-hidden","false");
     requestAnimationFrame(()=>zoom.classList.add("show"));
+    tick();
   }
   function closeZoom(instant){
     if(!zoom||!zoomOpen) return;
@@ -3178,6 +3299,20 @@ var WALL = (function(){
     else setTimeout(()=>{ if(!zoomOpen) zoom.classList.remove("on"); },320);
   }
   zoomClose&&zoomClose.addEventListener("click",e=>{ e.stopPropagation(); closeZoom(); });
+  zoomPrev&&zoomPrev.addEventListener("click",e=>{
+    e.stopPropagation();
+    if(typeof playSong==="function" && songs.length) playSong((currentIdx-1+songs.length)%songs.length);
+  });
+  zoomNext&&zoomNext.addEventListener("click",e=>{
+    e.stopPropagation();
+    if(typeof playSong==="function" && songs.length) playSong((currentIdx+1)%songs.length);
+  });
+  zoomPlay&&zoomPlay.addEventListener("click",e=>{ e.stopPropagation(); togglePlayback(); });
+  zoomBar&&zoomBar.addEventListener("click",e=>{
+    const rc=zoomBar.getBoundingClientRect();
+    const p=Math.max(0,Math.min(1,(e.clientX-rc.left)/Math.max(1,rc.width)));
+    if(isFinite(audio.duration)&&audio.duration>0){ audio.currentTime=p*audio.duration; tick(); }
+  });
 
   /* —— 交互：拖拽平移 / 滚轮缩放 / 点卡放大 —— */
   field.addEventListener("pointerdown",e=>{
