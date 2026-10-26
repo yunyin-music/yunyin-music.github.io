@@ -7,13 +7,20 @@
 <meta name="description" content="云音在线音乐播放器，免费在线听歌，包含热歌榜、新歌榜、飙升榜、原创榜、网红热歌榜、电音榜，支持歌词同步、我的收藏、最近播放、私人FM、推荐歌单。" />
 <meta name="keywords" content="在线播放器,在线听歌,免费音乐,热歌榜,网红热歌榜,飙升榜,歌词同步,音乐播放器" />
 <meta name="robots" content="index, follow" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="云音播放器" />
+<meta property="og:title" content="云音播放器 - 免费在线听歌" />
+<meta property="og:description" content="六大实时榜单 · 黑胶唱片播放页 · 歌词同步 · 热门评论 · 私人FM · 可安装到桌面" />
+<meta property="og:url" content="https://yunyin-music.github.io/player.html" />
+<meta property="og:image" content="https://yunyin-music.github.io/icon-512.png" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="云音播放器 - 免费在线听歌" />
+<meta name="twitter:description" content="六大实时榜单 · 黑胶唱片播放页 · 歌词同步 · 热门评论 · 私人FM" />
+<meta name="twitter:image" content="https://yunyin-music.github.io/icon-512.png" />
 <meta name="theme-color" content="#09090b" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
 <link rel="apple-touch-icon" href="icon-192.png" />
-<meta property="og:type" content="website" />
-<meta property="og:title" content="云音播放器 - 在线听歌" />
-<meta property="og:description" content="免费在线音乐播放器，多排行榜在线听歌，支持歌词同步。" />
 <style>
   :root{
     --bg-0:#09090b;
@@ -367,6 +374,19 @@
   .queue-panel.open{transform:translateX(0)}
   .q-count{color:var(--text-3);font-size:11px;font-weight:400;margin-left:4px}
   .q-clear{background:none;border:1px solid var(--border);color:var(--text-3);font-size:11px;padding:3px 10px;border-radius:12px;cursor:pointer}
+  .q-tools{display:flex;gap:10px;padding:0 18px 10px;flex-shrink:0}
+  .q-tools label{flex:1;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-3)}
+  .q-tools select{
+    flex:1;min-width:0;background:#1c1c20;border:1px solid var(--border);color:var(--text-1);
+    font-size:11px;padding:4px 6px;border-radius:8px;cursor:pointer;outline:none;
+  }
+  .q-tools select:hover{border-color:var(--border-hl)}
+  .q-backup{display:flex;gap:8px;padding:0 18px 10px;flex-shrink:0}
+  .q-backup button{
+    flex:1;background:none;border:1px dashed var(--border);color:var(--text-2);
+    font-size:11px;padding:5px 0;border-radius:8px;cursor:pointer;transition:border-color .2s,color .2s;
+  }
+  .q-backup button:hover{border-color:var(--accent);color:var(--accent)}
   .q-clear:hover{color:var(--danger);border-color:var(--danger)}
   .q-list{flex:1;overflow-y:auto;padding:8px 10px}
   .q-list::-webkit-scrollbar{width:5px}
@@ -501,6 +521,12 @@
   }
   .playpage.playing .pp-danmaku .dm{animation-play-state:running}
   @keyframes dmfly{to{transform:translateX(calc(-100vw - 100%))}}
+  /* 尊重系统「减少动态效果」设置：停用旋转/光晕脉动/背景漂移，弹幕放慢 */
+  @media (prefers-reduced-motion:reduce){
+    .pp-disc,.pp-glow,.pp-bg::before,.pp-arm{animation:none !important}
+    .pp-danmaku .dm{animation-duration:60s !important}
+    .pp-flip{transition:none}
+  }
   .pp-arm{
     position:absolute;top:-8%;right:-4%;width:130px;height:230px;z-index:6;
     transform-origin:34px 34px;transform:rotate(-32deg);
@@ -660,28 +686,28 @@
   <!-- Player -->
   <footer class="player">
     <div class="p-left">
-      <div class="vinyl" id="vinyl"><img id="pCover" src="" alt=""/></div>
+      <div class="vinyl" id="vinyl" role="button" tabindex="0" aria-label="打开沉浸播放页"><img id="pCover" src="" alt=""/></div>
       <div class="p-info">
         <div class="t" id="pTitle">未在播放</div>
         <div class="a" id="pArtist">选择一首歌曲开始聆听</div>
       </div>
-      <button class="fav-btn" id="pFavBtn" title="收藏">
+      <button class="fav-btn" id="pFavBtn" title="收藏" aria-label="收藏这首歌">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
       </button>
     </div>
 
     <div class="p-center">
       <div class="controls">
-        <button class="ctrl-btn" id="modeBtn" title="播放模式">
+        <button class="ctrl-btn" id="modeBtn" title="播放模式" aria-label="切换播放模式">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
         </button>
-        <button class="ctrl-btn" id="prevBtn" title="上一首">
+        <button class="ctrl-btn" id="prevBtn" title="上一首" aria-label="上一首">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
         </button>
-        <button class="ctrl-btn play" id="playBtn" title="播放">
+        <button class="ctrl-btn play" id="playBtn" title="播放" aria-label="播放或暂停">
           <svg id="playIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
         </button>
-        <button class="ctrl-btn" id="nextBtn" title="下一首">
+        <button class="ctrl-btn" id="nextBtn" title="下一首" aria-label="下一首">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/></svg>
         </button>
         <button class="lyrics-toggle" id="lrcToggle" title="歌词">
@@ -699,7 +725,7 @@
     </div>
 
     <div class="p-right">
-      <button class="lyrics-toggle" id="ppOpenBtn" title="播放页">
+      <button class="lyrics-toggle" id="ppOpenBtn" title="播放页" aria-label="展开沉浸播放页">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg>
       </button>
       <button class="lyrics-toggle" id="queueToggle" title="当前播放">
@@ -736,9 +762,33 @@
   <div class="lyrics-head">
     <h3>当前播放 <span class="q-count" id="qCount"></span></h3>
     <div style="display:flex;gap:8px;align-items:center">
-      <button class="q-clear" id="qClear">清空</button>
-      <button class="close" id="qClose">✕</button>
+      <button class="q-clear" id="qClear" aria-label="清空播放队列">清空</button>
+      <button class="close" id="qClose" aria-label="关闭播放队列">✕</button>
     </div>
+  </div>
+  <div class="q-tools">
+    <label>音质
+      <select id="qBr" aria-label="音质选择">
+        <option value="128">标准 128K</option>
+        <option value="192">较高 192K</option>
+        <option value="320" selected>极高 320K</option>
+        <option value="999">无损 FLAC</option>
+      </select>
+    </label>
+    <label>定时
+      <select id="qSleep" aria-label="定时关闭">
+        <option value="0" selected>关闭</option>
+        <option value="15">15 分钟</option>
+        <option value="30">30 分钟</option>
+        <option value="60">60 分钟</option>
+        <option value="90">90 分钟</option>
+      </select>
+    </label>
+  </div>
+  <div class="q-backup">
+    <button id="qFavExport" aria-label="导出收藏到文件">⇩ 导出收藏</button>
+    <button id="qFavImport" aria-label="从文件导入收藏">⇧ 导入收藏</button>
+    <input type="file" id="qFavFile" accept=".json,application/json" hidden/>
   </div>
   <div class="q-list" id="qList"></div>
 </div>
@@ -764,7 +814,7 @@
         <div class="pp-arm-head"></div>
       </div>
       <div class="pp-danmaku" id="ppDanmaku"></div>
-      <div class="pp-flip" id="ppFlip" title="点击翻面查看歌曲信息">
+      <div class="pp-flip" id="ppFlip" title="点击翻面查看歌曲信息" aria-label="翻转唱片查看歌曲信息" role="button" tabindex="0">
         <div class="pp-face pp-front">
           <div class="pp-disc">
             <div class="pp-cover"><img id="ppCover" src="" alt=""/></div>
@@ -851,13 +901,19 @@ async function fetchPlaylist(pid){
   }catch(e){}
   return null;
 }
-// 每次播放都现取新链接（网易直链约20分钟过期）
+// 每次播放都现取新链接（网易直链约20分钟过期）；音质跟随用户设置（yy_br，默认320K）
 async function ensurePlayUrl(s){
   if(s.url) return s.url; // 兜底源返回的链接
+  const br = store.get('yy_br',"320") || "320";
   try{
-    const res = await fetch(`${GD}?types=url&source=netease&id=${s.id}&br=320`);
+    const res = await fetch(`${GD}?types=url&source=netease&id=${s.id}&br=${br}`);
     const j = await res.json();
     if(j && j.url) return j.url;
+    if(br==="999"){ // 无损不可用时降级 320K 重试一次
+      const r2 = await fetch(`${GD}?types=url&source=netease&id=${s.id}&br=320`);
+      const j2 = await r2.json();
+      if(j2 && j2.url) return j2.url;
+    }
   }catch(e){}
   return `${API}?type=url&id=${s.id}&server=netease`;
 }
@@ -1277,12 +1333,15 @@ nextBtn.addEventListener("click",nextSong);
 
 /* ---------- Keyboard ---------- */
 document.addEventListener("keydown",(e)=>{
-  if(e.target.tagName==="INPUT") return;
+  const t = e.target;
+  if(t && (t.tagName==="INPUT"||t.tagName==="TEXTAREA"||t.tagName==="SELECT"||t.isContentEditable)) return;
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
   if(e.code==="Space"){e.preventDefault();togglePlay();}
   else if(e.code==="ArrowRight"){audio.currentTime = Math.min(audio.duration,audio.currentTime+5);}
   else if(e.code==="ArrowLeft"){audio.currentTime = Math.max(0,audio.currentTime-5);}
   else if(e.code==="ArrowUp"){e.preventDefault();applyVolume(Math.min(1,audio.volume+0.05));}
   else if(e.code==="ArrowDown"){e.preventDefault();applyVolume(Math.max(0,audio.volume-0.05));}
+  else if(e.code==="KeyM"){audio.muted=!audio.muted;toast(audio.muted?"已静音":"已取消静音");}
   else if(e.code==="Escape"){
     if(playPage.classList.contains("open")){ playPage.classList.remove("open"); }
     else if(currentQueueOpen){ currentQueueOpen=false; queuePanel.classList.remove("open"); }
@@ -1592,16 +1651,66 @@ function startFM(){
 
 /* ---------- Playlist wall ---------- */
 function renderWall(){
-  plWall.innerHTML = PLAYLISTS.map((p,i)=>`
+  const custom = store.get('yy_custom', null);
+  let html = PLAYLISTS.map((p,i)=>`
     <div class="pl-tile" style="background:${p.g}" data-pl="${i}" title="加载 ${p.name} 歌单（${p.count}首）">
       <span class="em">${p.icon}</span>
       <span>${p.name}</span>
       <span class="pc">${p.count}首</span>
     </div>
   `).join("");
+  if(custom && custom.id) html += `
+    <div class="pl-tile" style="background:linear-gradient(135deg,#a78bfa,#7c3aed)" data-custom="1" title="加载我导入的歌单">
+      <span class="em">📂</span>
+      <span>${escHtml(custom.name)||"我的歌单"}</span>
+      <span class="pc">CUSTOM</span>
+    </div>`;
+  html += `
+    <div class="pl-tile" style="background:linear-gradient(135deg,#3f3f46,#27272a)" data-import="1" title="粘贴网易云歌单链接或ID导入">
+      <span class="em">＋</span>
+      <span>导入歌单</span>
+      <span class="pc">IMPORT</span>
+    </div>`;
+  plWall.innerHTML = html;
   plWall.querySelectorAll(".pl-tile").forEach(el=>{
-    el.addEventListener("click",()=>loadPlaylist(+el.dataset.pl));
+    if(el.dataset.pl!==undefined) el.addEventListener("click",()=>loadPlaylist(+el.dataset.pl));
+    else if(el.dataset.custom) el.addEventListener("click",()=>{
+      const c = store.get('yy_custom', null);
+      if(c && c.id) loadCustomPlaylist(c.id, c.name);
+    });
+    else if(el.dataset.import) el.addEventListener("click", importPlaylistDialog);
   });
+}
+function importPlaylistDialog(){
+  const input = prompt("粘贴网易云歌单链接或歌单ID\n例如：https://music.163.com/playlist?id=2301490995");
+  if(input===null) return;
+  const m = String(input).match(/(\d{5,})/);
+  if(!m){ toast("没有识别到歌单ID"); return; }
+  loadCustomPlaylist(m[1], "", true);
+}
+async function loadCustomPlaylist(pid, name, fromImport){
+  listMode = null; fmMode = false; currentIdx = -1; currentChart = null;
+  setActiveNav(null);
+  clearBtn.style.display = "none";
+  chartTitle.textContent = name || "我的歌单";
+  chartDesc.textContent = "自定义导入的网易云歌单";
+  chartTag.textContent = "PLAYLIST";
+  chartCover.innerHTML = "📂";
+  chartCover.style.background = "linear-gradient(135deg,#a78bfa,#7c3aed)";
+  songListEl.innerHTML = `<div class="loader"><div class="spinner"></div><p>加载歌单中...</p></div>`;
+  try{
+    const list = await fetchPlaylist(pid);
+    if(!list || !list.length) throw new Error("empty");
+    songs = list;
+    store.set('yy_custom', {id:pid, name:name||"我的歌单"});
+    renderWall(); // 刷新出「我的歌单」卡片
+    renderSongs();
+    if(fromImport){ toast(`导入成功，共 ${songs.length} 首，已保存到歌单墙`); }
+    else { toast(`已加载「${name||"我的歌单"}」，共 ${songs.length} 首`); playSong(0); }
+  }catch(e){
+    songListEl.innerHTML = `<div class="empty"><p>歌单加载失败，请确认ID是否正确（仅支持公开歌单）</p></div>`;
+    toast("歌单加载失败");
+  }
 }
 async function loadPlaylist(idx){
   const p = PLAYLISTS[idx];
@@ -1766,7 +1875,8 @@ function updatePlayPage(s){
   ppTitle.textContent = s.name;
   ppArtist.textContent = s.artist;
   ppCover.src = s.pic || "";
-  ppBgImg.src = s.pic || "";
+  // 背景用小尺寸图再模糊（90px 高斯模糊下无损画质差异），显著降低低端机 GPU 负担
+  ppBgImg.src = s.pic ? s.pic.replace(/\?.*$/,"") + "?param=350y350" : "";
   // 弥散光晕按歌曲换色
   const g = GLOWS[hashSong(s.id) % GLOWS.length];
   playPage.style.setProperty("--glow1", g[0]);
@@ -1915,6 +2025,83 @@ async function loadComments(song){
     }
   }
 }
+
+/* ---------- Drawer tools: quality / sleep / backup ---------- */
+const qBr = document.getElementById("qBr");
+const qSleep = document.getElementById("qSleep");
+const qFavExport = document.getElementById("qFavExport");
+const qFavImport = document.getElementById("qFavImport");
+const qFavFile = document.getElementById("qFavFile");
+// 音质
+qBr.value = store.get('yy_br',"320") || "320";
+qBr.addEventListener("change", async ()=>{
+  store.set('yy_br', qBr.value);
+  const label = qBr.selectedOptions[0].text;
+  const s = songs[currentIdx];
+  if(!s || !audio.src){ toast("音质已设为 "+label); return; }
+  const pos = audio.currentTime;
+  const wasPlaying = !audio.paused;
+  s.url = "";
+  toast("正在切换至 "+label+"…");
+  try{
+    const u = await ensurePlayUrl(s);
+    if(songs[currentIdx]===s){
+      audio.src = u; audio.currentTime = pos;
+      if(wasPlaying) audio.play();
+      toast("已切换 "+label);
+    }
+  }catch(e){ toast("音质切换失败"); }
+});
+// 定时关闭
+let sleepTimer = null;
+qSleep.addEventListener("change", ()=>{
+  if(sleepTimer){ clearTimeout(sleepTimer); sleepTimer = null; }
+  const m = parseInt(qSleep.value,10);
+  if(!m){ toast("定时关闭已取消"); return; }
+  sleepTimer = setTimeout(()=>{
+    audio.pause();
+    toast("定时时间到，已暂停");
+    qSleep.value = "0";
+  }, m*60000);
+  toast(`将在 ${m} 分钟后暂停播放`);
+});
+// 收藏备份
+qFavExport.addEventListener("click", ()=>{
+  if(!favs.length){ toast("收藏为空，先去标记红心吧"); return; }
+  const blob = new Blob([JSON.stringify(favs,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "yunyin-favs-"+new Date().toISOString().slice(0,10)+".json";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  toast(`已导出 ${favs.length} 首收藏`);
+});
+qFavImport.addEventListener("click", ()=>qFavFile.click());
+qFavFile.addEventListener("change", ()=>{
+  const f = qFavFile.files[0];
+  qFavFile.value = "";
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const arr = JSON.parse(r.result);
+      if(!Array.isArray(arr)) throw new Error("format");
+      let added = 0;
+      arr.forEach(it=>{
+        if(it && it.id && !favs.some(x=>x.id===String(it.id))){
+          favs.push({ id:String(it.id), name:it.name||"未知歌曲", artist:it.artist||"未知歌手", pic:it.pic||"", album:it.album||"", dur:it.dur||0, url:"", lrc:"" });
+          added++;
+        }
+      });
+      store.set('yy_favs', favs);
+      favCnt && (favCnt.textContent = favs.length);
+      if(listMode==='favs') showFavs();
+      renderSongs();
+      toast(`导入完成，新增 ${added} 首收藏`);
+    }catch(e){ toast("文件格式错误，请选择导出的 JSON 文件"); }
+  };
+  r.readAsText(f);
+});
 
 /* ---------- State memory ---------- */
 function saveState(s, pos){
