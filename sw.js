@@ -1,5 +1,5 @@
 /* 云音播放器 Service Worker：应用壳缓存（cache-first），API 请求直连 */
-const CACHE = "yunyin-v8";
+const CACHE = "yunyin-v9";
 const SHELL = [
   "./",
   "./index.html",
