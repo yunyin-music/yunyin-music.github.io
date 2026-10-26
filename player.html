@@ -986,6 +986,46 @@
     display:flex;align-items:center;justify-content:center;padding:0;
   }
   .wall-back:hover{background:rgba(0,0,0,.72);border-color:rgba(255,255,255,.3)}
+
+  /* 全屏封面层：当前封面 cover 铺满整屏，点右上角 × 或 Esc 退出 */
+  .wall-zoom{
+    position:fixed;inset:0;z-index:30;display:none;background:#050505;
+    opacity:0;transform:scale(1.04);
+    transition:opacity .3s ease, transform .5s cubic-bezier(.22,.68,0,1);
+  }
+  .wall-zoom.on{display:block}
+  .wall-zoom.show{opacity:1;transform:scale(1)}
+  .wall-zoom-img{
+    position:absolute;inset:0;background-color:#0b0b0b;
+    background-position:center;background-size:cover;
+  }
+  .wall-zoom-img::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(0,0,0,.38),transparent 24%,transparent 64%,rgba(0,0,0,.66));
+  }
+  .wall-zoom-close{
+    position:absolute;top:calc(18px + env(safe-area-inset-top,0px));
+    right:calc(18px + env(safe-area-inset-right,0px));z-index:2;
+    width:38px;height:38px;border:1px solid rgba(255,255,255,.22);padding:0;
+    background:rgba(0,0,0,.45);color:#fff;font-size:20px;line-height:1;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  }
+  .wall-zoom-close:hover{background:rgba(0,0,0,.72)}
+  .wall-zoom-info{
+    position:absolute;left:calc(28px + env(safe-area-inset-left,0px));
+    right:28px;bottom:calc(26px + env(safe-area-inset-bottom,0px));z-index:2;
+    display:flex;flex-direction:column;gap:6px;color:#fff;pointer-events:none;
+    text-shadow:0 2px 18px rgba(0,0,0,.85);
+  }
+  .wall-zoom-info strong{font-size:clamp(20px,2.4vw,32px);font-weight:800;letter-spacing:-.02em;line-height:1.15}
+  .wall-zoom-info small{font-size:13px;opacity:.84}
+  @media (max-width:640px){
+    .wall-zoom-info{left:calc(16px + env(safe-area-inset-left,0px));right:16px;bottom:calc(18px + env(safe-area-inset-bottom,0px));gap:3px}
+    .wall-zoom-info strong{font-size:22px}
+    .wall-zoom-info small{font-size:11px}
+    .wall-zoom-close{top:calc(12px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));width:34px;height:34px;font-size:18px}
+  }
   @media (max-width:640px){
     .wall-back{top:calc(14px + env(safe-area-inset-top,0px));left:calc(14px + env(safe-area-inset-left,0px));width:36px;height:36px}
     .wall-card.is-expanded .wall-copy{left:14px;right:16px;bottom:38px;gap:2px}
@@ -1002,12 +1042,21 @@
 <div class="bg-mesh"></div>
 <div class="bg-noise"></div>
 
-<!-- Folia 海报墙：全屏可拖拽的马赛克墙面（视图中显示） -->
-<div id="foliaWall" aria-label="海报墙">
+<!-- 沉浸式：全屏可拖拽的马赛克墙面（视图中显示） -->
+<div id="foliaWall" aria-label="沉浸式">
   <div class="wall-field" id="wallField">
     <div class="wall-world" id="wallWorld"></div>
   </div>
   <button class="wall-back" id="wallBack" aria-label="返回列表">‹</button>
+  <!-- 全屏封面：点展开卡右上角全屏按钮后，当前封面铺满整屏 -->
+  <div class="wall-zoom" id="wallZoom" aria-hidden="true">
+    <div class="wall-zoom-img" id="wallZoomImg"></div>
+    <button class="wall-zoom-close" id="wallZoomClose" aria-label="退出全屏">×</button>
+    <div class="wall-zoom-info">
+      <strong id="wallZoomTitle"></strong>
+      <small id="wallZoomArtist"></small>
+    </div>
+  </div>
 </div>
 
 <!-- 移动端顶栏（仅 ≤900px 显示） -->
@@ -1076,7 +1125,7 @@
         <p id="chartDesc">云音乐用户一周内收听所有线上歌曲官方 TOP 排行榜，每日更新。</p>
       </div>
       <div class="chart-actions">
-        <button class="btn-clear" id="viewToggle" title="切换 列表/沉浸 视图">◈ 沉浸</button>
+        <button class="btn-clear" id="viewToggle" title="切换 列表/沉浸式 视图">◈ 沉浸式</button>
         <button class="btn-clear" id="clearBtn" style="display:none">清空记录</button>
         <button class="btn-play-all" id="playAllBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -2835,6 +2884,11 @@ var WALL = (function(){
   const field=document.getElementById("wallField");
   const world=document.getElementById("wallWorld");
   const backBtn=document.getElementById("wallBack");
+  const zoom=document.getElementById("wallZoom");
+  const zoomImg=document.getElementById("wallZoomImg");
+  const zoomTitle=document.getElementById("wallZoomTitle");
+  const zoomArtist=document.getElementById("wallZoomArtist");
+  const zoomClose=document.getElementById("wallZoomClose");
   const api={onSongs(){},onSong(){},sync(){},open(){},close(){}};
   if(!root||!field||!world||!backBtn) return api;
 
@@ -3057,6 +3111,29 @@ var WALL = (function(){
     else audio.pause();
   }
 
+  /* —— 全屏封面：把当前封面 cover 铺满整屏 —— */
+  let zoomOpen=false;
+  function openZoom(i){
+    const s=songs[i];
+    if(!s||!zoom) return;
+    zoomImg.style.backgroundImage = s.pic ? 'url("'+thumbUrl(s.pic,1080)+'")' : "none";
+    zoomTitle.textContent=s.name||"";
+    zoomArtist.textContent=s.artist||"";
+    zoomOpen=true;
+    zoom.classList.add("on");
+    zoom.setAttribute("aria-hidden","false");
+    requestAnimationFrame(()=>zoom.classList.add("show"));
+  }
+  function closeZoom(instant){
+    if(!zoom||!zoomOpen) return;
+    zoomOpen=false;
+    zoom.classList.remove("show");
+    zoom.setAttribute("aria-hidden","true");
+    if(instant) zoom.classList.remove("on");
+    else setTimeout(()=>{ if(!zoomOpen) zoom.classList.remove("on"); },320);
+  }
+  zoomClose&&zoomClose.addEventListener("click",e=>{ e.stopPropagation(); closeZoom(); });
+
   /* —— 交互：拖拽平移 / 滚轮缩放 / 点卡放大 —— */
   field.addEventListener("pointerdown",e=>{
     if(e.button) return;
@@ -3092,8 +3169,10 @@ var WALL = (function(){
     const i=+card.dataset.idx;
     if(e.target.closest(".wall-playbtn")){ togglePlayback(); return; }
     if(e.target.closest(".wall-full")){
+      // 全屏：封面铺满整屏并开始播放当前卡片的歌
       if(i!==currentIdx && typeof playSong==="function") playSong(i);
-      if(typeof openPlayPage==="function") openPlayPage();
+      else if(audio.paused) audio.play().catch(()=>{});
+      openZoom(i);
       return;
     }
     if(e.target.closest(".wall-prev")){ if(typeof playSong==="function"){ const p=(currentIdx-1+songs.length)%songs.length; playSong(p); } return; }
@@ -3120,7 +3199,9 @@ var WALL = (function(){
 
   backBtn.addEventListener("click",()=>{ if(typeof setFolia==="function") setFolia(false); });
   window.addEventListener("keydown",e=>{
-    if(e.key==="Escape" && document.body.classList.contains("folia") && typeof setFolia==="function") setFolia(false);
+    if(e.key!=="Escape") return;
+    if(zoomOpen){ closeZoom(); return; }
+    if(document.body.classList.contains("folia") && typeof setFolia==="function") setFolia(false);
   });
 
   window.addEventListener("resize",()=>{
@@ -3151,11 +3232,12 @@ var WALL = (function(){
     });
     startTick();
   };
-  api.close=()=>{ stopTick(); };
+  api.close=()=>{ stopTick(); closeZoom(true); };
   api.onSongs=()=>{ if(document.body.classList.contains("folia")) build(); };
   api.onSong=()=>{
     if(!document.body.classList.contains("folia")) return;
     if(expanded<0 || expanded!==currentIdx){ expanded=currentIdx; build(); panTo(expanded); }
+    if(zoomOpen) openZoom(currentIdx);
     sync();
   };
   api.sync=sync;
@@ -3164,7 +3246,7 @@ var WALL = (function(){
 
 function applyView(){
   document.body.classList.toggle("folia", foliaView);
-  viewToggle.textContent = foliaView ? "≡ 列表" : "◈ 海报墙";
+  viewToggle.textContent = foliaView ? "≡ 列表" : "◈ 沉浸式";
   syncParticles();
   if(foliaView) WALL.open(); else WALL.close();
 }
