@@ -821,11 +821,179 @@
     .song-list.folia .song-row .title{font-size:18px}
   }
 
+  /* ================= Folia 海报墙（对齐 wall.css / PosterWall.tsx 真实结构） =================
+     全屏可拖拽的马赛克墙面：128 世界单位格子 + 8 间隙、混合尺寸拼贴、镜头缩放 0.52~0.76。
+     正在播放的卡就地放大成播放器：歌词浮在封面上 + 播放键 + 进度条。 */
+  #foliaWall{
+    position:fixed;inset:0;z-index:60;overflow:hidden;display:none;
+    color:#f7f4ee;isolation:isolate;
+    background:
+      radial-gradient(circle at 14% 12%, rgba(253,92,71,.16), transparent 29%),
+      radial-gradient(circle at 86% 82%, rgba(106,72,255,.20), transparent 32%),
+      #070707;
+  }
+  body.folia #foliaWall{display:block}
+  body.folia .app,body.folia .m-top{display:none!important}
+  /* 颗粒噪点：与源码 .lattice-root::after 同参数（feTurbulence soft-light .13） */
+  #foliaWall::after{
+    content:"";position:absolute;inset:0;z-index:2;pointer-events:none;opacity:.13;
+    mix-blend-mode:soft-light;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+  }
+  /* 边缘暗角（源码 .has-vignette::before，刻意很浅） */
+  #foliaWall::before{
+    content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 78%, rgba(0,0,0,.52) 100%);
+  }
+  .wall-field{
+    position:absolute;inset:0;overflow:hidden;cursor:grab;
+    touch-action:none;overscroll-behavior:none;
+  }
+  .wall-field:active{cursor:grabbing}
+  .wall-world{position:absolute;inset:0;transform-origin:0 0;will-change:transform}
+  .wall-world.animating{transition:transform .55s cubic-bezier(.32,.72,0,1)}
+
+  /* 海报卡（源码 .lattice-poster）：直角、无圆角、封面色打底 */
+  .wall-card{
+    position:absolute;overflow:hidden;padding:0;border:0;margin:0;
+    border-radius:0;background-color:#161419;background-position:center;background-size:cover;
+    text-align:left;color:#f7f4ee;cursor:pointer;contain:layout paint;
+    transition:left .5s cubic-bezier(.32,.72,0,1),top .5s cubic-bezier(.32,.72,0,1),
+      width .5s cubic-bezier(.32,.72,0,1),height .5s cubic-bezier(.32,.72,0,1),
+      filter .6s ease,box-shadow .6s ease,opacity .26s ease;
+  }
+  .wall-card:hover{z-index:3;filter:saturate(1.08) brightness(1.05)}
+  .wall-card.is-expanded{
+    z-index:20;filter:none;
+    box-shadow:0 42px 110px rgba(0,0,0,.74);
+  }
+  /* 播放中：accent 2px 内描边 + 内发光（源码 .is-current::before） */
+  .wall-card.is-current::before{
+    content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
+    border:2px solid #fd5c47;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.52), inset 0 0 15px -7px rgba(253,92,71,.46);
+  }
+  .wall-shade{
+    position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:linear-gradient(180deg,rgba(0,0,0,.05) 34%,rgba(0,0,0,.24) 56%,rgba(0,0,0,.92) 100%);
+  }
+  .wall-card.is-expanded .wall-shade{
+    background:
+      linear-gradient(0deg,rgba(0,0,0,.86) 0%,rgba(0,0,0,.62) 14%,rgba(0,0,0,.26) 30%,rgba(0,0,0,0) 46%),
+      linear-gradient(90deg,rgba(0,0,0,.88),rgba(0,0,0,.50) 52%,rgba(0,0,0,.08));
+  }
+  /* 背景卡安静 tint，悬停/播放中/展开时揭开（源码 .lattice-poster-tint） */
+  .wall-tint{
+    position:absolute;inset:0;z-index:3;pointer-events:none;opacity:.5;
+    background:#161419;transition:opacity .26s ease;
+  }
+  .wall-card:hover .wall-tint,.wall-card.is-current .wall-tint,
+  .wall-card.is-expanded .wall-tint{opacity:0}
+  /* 序号徽章（源码 .lattice-poster-badge）：11px/800/tabular/.12em，直角 */
+  .wall-badge{
+    position:absolute;top:14px;left:14px;z-index:6;padding:0;background:none;
+    color:rgba(247,244,238,.55);font-size:11px;font-weight:800;
+    letter-spacing:.12em;font-variant-numeric:tabular-nums;
+  }
+  .wall-card.is-current .wall-badge{color:#fd5c47}
+  .wall-card.is-expanded .wall-badge{opacity:.7;color:rgba(247,244,238,.55)}
+  /* 文案（源码 .lattice-poster-copy）：右下角超大紧排标题 */
+  .wall-copy{
+    position:absolute;left:17px;right:17px;bottom:15px;z-index:6;
+    display:flex;flex-direction:column;gap:4px;
+  }
+  .wall-card:hover .wall-badge,.wall-card.is-current .wall-badge{opacity:1}
+  .wall-copy strong{
+    font-weight:700;line-height:.96;letter-spacing:-.045em;color:#f7f4ee;
+    text-shadow:0 2px 18px rgba(0,0,0,.55);
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+    text-wrap:balance;
+  }
+  .wall-copy small{
+    font-size:13px;font-weight:650;opacity:.72;color:#f7f4ee;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  /* 展开卡：标题/歌手移到卡片左上（源码 .lattice-poster.is-expanded .lattice-lyric-metadata top:74px） */
+  .wall-card.is-expanded .wall-copy{top:74px;right:100px;bottom:auto;left:32px;gap:2px}
+  .wall-card.is-expanded .wall-copy strong{
+    max-width:100%;font-size:22px;line-height:1.2;-webkit-line-clamp:1;
+  }
+  .wall-card.is-expanded .wall-copy small{margin-top:2px;font-size:13px}
+
+  /* 歌词区（源码 .lattice-lyrics inset:128px 24px 110px）：三行浮层，当前行放大 */
+  .wall-lrc{
+    position:absolute;inset:128px 24px 110px;z-index:4;pointer-events:none;
+    display:none;flex-direction:column;justify-content:center;gap:14px;
+  }
+  .wall-card.is-expanded .wall-lrc{display:flex}
+  .wall-lrc .ln{
+    font-size:clamp(17px,2.1vw,32px);line-height:1.26;font-weight:600;
+    color:rgba(247,244,238,.26);text-shadow:0 2px 20px rgba(0,0,0,.6);
+    transition:color .3s ease;
+  }
+  .wall-lrc .ln.cur{
+    color:#f7f4ee;font-size:clamp(23px,3vw,44px);font-weight:700;letter-spacing:-.02em;
+  }
+
+  /* 底部控制条（源码 .lattice-poster-controls）：播放键在左，进度条贴卡片底边 */
+  .wall-ctrl{
+    position:absolute;left:32px;right:24px;bottom:28px;z-index:7;
+    display:none;align-items:center;gap:14px;
+  }
+  .wall-card.is-expanded .wall-ctrl{display:flex}
+  .wall-bar{
+    position:absolute;left:0;right:0;bottom:0;height:14px;z-index:7;
+    background:transparent;display:none;cursor:pointer;
+  }
+  .wall-card.is-expanded .wall-bar{display:block}
+  .wall-bar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,.18)}
+  .wall-bar i{position:absolute;left:0;bottom:0;height:2px;width:0;background:#f7f4ee;display:block;z-index:1}
+  .wall-playbtn{
+    width:44px;height:44px;flex-shrink:0;border:0;border-radius:50%;
+    background:#f7f4ee;color:#070707;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;padding:0;
+  }
+  .wall-playbtn svg{width:18px;height:18px}
+  .wall-time{font-size:11px;opacity:.7;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .wall-open{
+    margin-left:auto;width:34px;height:34px;flex-shrink:0;border:0;background:transparent;
+    color:#f7f4ee;opacity:.75;cursor:pointer;padding:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .wall-open:hover{opacity:1}
+
+  /* 左上返回（源码 .lattice-back） */
+  .wall-back{
+    position:absolute;top:calc(22px + env(safe-area-inset-top,0px));
+    left:calc(22px + env(safe-area-inset-left,0px));z-index:8;
+    width:40px;height:40px;border:1px solid rgba(255,255,255,.16);
+    background:rgba(0,0,0,.5);color:#f7f4ee;cursor:pointer;font-size:20px;line-height:1;
+    display:flex;align-items:center;justify-content:center;padding:0;
+  }
+  .wall-back:hover{background:rgba(0,0,0,.72);border-color:rgba(255,255,255,.3)}
+  @media (max-width:640px){
+    .wall-back{top:calc(14px + env(safe-area-inset-top,0px));left:calc(14px + env(safe-area-inset-left,0px));width:36px;height:36px}
+    .wall-card.is-expanded .wall-copy{top:112px;left:20px;right:32px}
+    .wall-ctrl{left:20px;right:16px;bottom:20px;gap:10px}
+    .wall-lrc{inset:160px 20px 164px;gap:10px}
+    .wall-badge{top:10px;left:10px;font-size:10px;padding:4px 6px}
+    .wall-copy{left:11px;right:11px;bottom:11px;gap:3px}
+    .wall-copy small{font-size:11px}
+  }
+
 </style>
 </head>
 <body>
 <div class="bg-mesh"></div>
 <div class="bg-noise"></div>
+
+<!-- Folia 海报墙：全屏可拖拽的马赛克墙面（视图中显示） -->
+<div id="foliaWall" aria-label="海报墙">
+  <div class="wall-field" id="wallField">
+    <div class="wall-world" id="wallWorld"></div>
+  </div>
+  <button class="wall-back" id="wallBack" aria-label="返回列表">‹</button>
+</div>
 
 <!-- 移动端顶栏（仅 ≤900px 显示） -->
 <header class="m-top" aria-label="移动端导航">
@@ -1364,6 +1532,7 @@ function renderSongs(){
       if(s) toggleFav(s);
     });
   });
+  if(window.WALL) window.WALL.onSongs();
 }
 
 /* ---------- Playback ---------- */
@@ -1384,6 +1553,7 @@ async function playSong(idx){
   if(currentQueueOpen) renderQueue();
   // update row highlight
   document.querySelectorAll(".song-row").forEach((e,i)=>e.classList.toggle("playing",i===idx));
+  if(window.WALL) window.WALL.onSong();
   // load lyrics
   loadLyrics(s);
   // scroll into view
@@ -2629,18 +2799,327 @@ if(mMenuBtn){
 /* ---------- Folia 沉浸视图切换 ---------- */
 const viewToggle = document.getElementById("viewToggle");
 let foliaView = !!store.get('yy_folia', false);
+
+/* ================= Folia 海报墙引擎 =================
+   对齐 Folia 源码结构（PosterWall.tsx / wall.css）：
+   · CELL=128 世界单位、GAP=8，混合尺寸拼贴（不用 CSS grid，用绝对定位 + 镜头 transform）
+   · 镜头缩放 0.52 / 0.64 / 0.76（<640 / <1100 / 其余），指针拖拽平移、滚轮缩放
+   · 只渲染视口附近（overscan 500）的卡片，屏外清图，控制 200 张卡的绘制开销
+   · 正在播放/点选的卡就地放大成 5x5 播放器：歌词三行浮层 + 播放键 + 进度条 */
+var WALL = (function(){
+  const CELL=128, GAP=8, OVERSCAN=500, GROW_W=5, GROW_H=5, COLS=14;
+  // 混合尺寸拼贴模板：4x1 横幅 / 2x2 方卡 / 1x2 竖幅 / 1x1 小卡（对齐 Folia 的块模板节奏）
+  const SPANS=[[4,1],[1,1],[2,2],[1,1],[1,2],[2,2],[1,1],[1,1],[4,1],[1,2],[1,1],[2,2],[1,1],[1,1],[2,1],[1,1]];
+  const ICON_PLAY='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  const ICON_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
+  const ICON_EXPAND='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
+
+  const root=document.getElementById("foliaWall");
+  const field=document.getElementById("wallField");
+  const world=document.getElementById("wallWorld");
+  const backBtn=document.getElementById("wallBack");
+  const api={onSongs(){},onSong(){},sync(){},open(){},close(){}};
+  if(!root||!field||!world||!backBtn) return api;
+
+  let cam={x:34,y:80,scale:0.76};
+  let layout=[], nodes=[], expanded=-1;
+  let dragging=false, didDrag=false, pt=null, cam0=null;
+  let cullRaf=0, tickTimer=0;
+
+  const fmt=s=>{s=Math.max(0,Math.floor(s||0));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
+  const scaleFor=()=>{const w=innerWidth;return w<640?0.52:(w<1100?0.64:0.76)};
+  const titleSize=w=>Math.max(12,Math.min(44,Math.round(w*0.17)));
+
+  /* —— 贪心拼贴：先按列表顺序铺一遍；放大时用基础位置作锚点预留 4x4，其余重新流动 —— */
+  function pack(count, growIdx){
+    const occ=new Set(), kk=(r,c)=>r*128+c;
+    const free=(r,c,w,h)=>{
+      if(c<0||c+w>COLS) return false;
+      for(let y=r;y<r+h;y++) for(let x=c;x<c+w;x++) if(occ.has(kk(y,x))) return false;
+      return true;
+    };
+    const mark=(r,c,w,h)=>{for(let y=r;y<r+h;y++) for(let x=c;x<c+w;x++) occ.add(kk(y,x))};
+    const rectOf=(r,c,w,h)=>({x:c*(CELL+GAP),y:r*(CELL+GAP),w:w*(CELL+GAP)-GAP,h:h*(CELL+GAP)-GAP});
+    const out=new Array(count);
+
+    if(growIdx>=0 && growIdx<count){
+      // 基础流锚点（不含放大）
+      const o2=new Set();
+      const f2=(r,c,w,h)=>{
+        if(c<0||c+w>COLS) return false;
+        for(let y=r;y<r+h;y++) for(let x=c;x<c+w;x++) if(o2.has(kk(y,x))) return false;
+        return true;
+      };
+      const m2=(r,c,w,h)=>{for(let y=r;y<r+h;y++) for(let x=c;x<c+w;x++) o2.add(kk(y,x))};
+      let ar=0, ac=0;
+      for(let i=0;i<=growIdx;i++){
+        const sp=SPANS[i%SPANS.length];
+        let done=false;
+        for(let r=0;!done;r++) for(let c=0;c<=COLS-sp[0];c++){
+          if(f2(r,c,sp[0],sp[1])){
+            m2(r,c,sp[0],sp[1]);
+            if(i===growIdx){ar=r;ac=Math.max(0,Math.min(COLS-GROW_W,c));}
+            done=true;break;
+          }
+        }
+      }
+      mark(ar,ac,GROW_W,GROW_H);
+      out[growIdx]=rectOf(ar,ac,GROW_W,GROW_H);
+    }
+
+    for(let i=0;i<count;i++){
+      if(i===growIdx) continue;
+      const sp=SPANS[i%SPANS.length];
+      let done=false;
+      for(let r=0;!done;r++) for(let c=0;c<=COLS-sp[0];c++){
+        if(free(r,c,sp[0],sp[1])){ mark(r,c,sp[0],sp[1]); out[i]=rectOf(r,c,sp[0],sp[1]); done=true; break; }
+      }
+    }
+    return out;
+  }
+
+  function makeNode(i){
+    const s=songs[i];
+    const el=document.createElement("article");
+    el.className="wall-card";
+    el.dataset.idx=i;
+    el.innerHTML=
+      '<span class="wall-shade"></span><span class="wall-tint"></span>'+
+      '<span class="wall-badge">'+String(i+1).padStart(2,"0")+'</span>'+
+      '<span class="wall-copy"><strong></strong><small></small></span>'+
+      '<div class="wall-lrc"></div>'+
+      '<div class="wall-ctrl">'+
+        '<button class="wall-playbtn" aria-label="播放或暂停">'+ICON_PLAY+'</button>'+
+        '<span class="wall-time">0:00</span>'+
+        '<button class="wall-open" aria-label="打开播放页">'+ICON_EXPAND+'</button>'+
+      '</div>'+
+      '<span class="wall-bar"><i></i></span>';
+    el.querySelector(".wall-copy strong").textContent=s.name||"";
+    el.querySelector(".wall-copy small").textContent=s.artist||"";
+    return {el,url:"",hidden:false};
+  }
+
+  function build(){
+    const n=songs.length;
+    if(!n){ world.innerHTML=""; nodes=[]; layout=[]; return; }
+    layout=pack(n,expanded);
+    if(nodes.length!==n){
+      world.innerHTML="";
+      nodes=[];
+      for(let i=0;i<n;i++){ const nd=makeNode(i); world.appendChild(nd.el); nodes.push(nd); }
+    }else{
+      for(let i=0;i<n;i++){
+        const s=songs[i], nd=nodes[i];
+        nd.el.querySelector(".wall-copy strong").textContent=s.name||"";
+        nd.el.querySelector(".wall-copy small").textContent=s.artist||"";
+        nd.el.querySelector(".wall-badge").textContent=String(i+1).padStart(2,"0");
+        if(nd.url!==(s.pic||"")){ nd.url=""; nd.el.style.backgroundImage=""; }
+      }
+    }
+    for(let i=0;i<n;i++){
+      const el=nodes[i].el, r=layout[i];
+      el.style.left=r.x+"px"; el.style.top=r.y+"px";
+      el.style.width=r.w+"px"; el.style.height=r.h+"px";
+      el.classList.toggle("is-expanded", i===expanded);
+      el.classList.toggle("is-current", i===currentIdx);
+      const tEl=el.querySelector(".wall-copy strong");
+      const aEl=el.querySelector(".wall-copy small");
+      tEl.style.fontSize = i===expanded ? "" : titleSize(r.w)+"px";
+      aEl.style.fontSize = i===expanded ? "" : Math.max(9, Math.min(15, r.w*0.08))+"px";
+      el.querySelector(".wall-lrc").textContent="";
+      el.querySelector(".wall-lrc").dataset.sig="";
+    }
+    cull();
+  }
+
+  /* 只画视口附近的卡，出圈的清掉封面图（对应源码的 near(bounds, OVERSCAN)） */
+  function cull(){
+    if(!nodes.length) return;
+    const vw=innerWidth, vh=innerHeight;
+    const l=(-cam.x)/cam.scale-OVERSCAN, t=(-cam.y)/cam.scale-OVERSCAN;
+    const r=(vw-cam.x)/cam.scale+OVERSCAN, b=(vh-cam.y)/cam.scale+OVERSCAN;
+    for(let i=0;i<nodes.length;i++){
+      const nd=nodes[i], rc=layout[i];
+      if(!rc) continue;
+      const vis = rc.x<r && rc.x+rc.w>l && rc.y<b && rc.y+rc.h>t;
+      if(vis){
+        if(nd.hidden){ nd.el.style.display=""; nd.hidden=false; }
+        if(!nd.url && songs[i] && songs[i].pic){
+          nd.url=songs[i].pic;
+          nd.el.style.backgroundImage='url("'+thumbUrl(songs[i].pic, i===expanded?640:360)+'")';
+        }
+      }else if(!nd.hidden){ nd.el.style.display="none"; nd.hidden=true; }
+    }
+  }
+
+  function applyCam(animate){
+    if(animate){
+      world.classList.add("animating");
+      setTimeout(()=>world.classList.remove("animating"),620);
+    }
+    world.style.transform="translate3d("+cam.x+"px,"+cam.y+"px,0) scale("+cam.scale+")";
+    if(!cullRaf) cullRaf=requestAnimationFrame(()=>{cullRaf=0;cull();});
+  }
+
+  function panTo(idx, animate){
+    const r=layout[idx];
+    if(!r) return;
+    const vw=innerWidth, vh=innerHeight;
+    const need=Math.min((vw*0.92)/r.w, (vh*0.86)/r.h);
+    cam.scale=Math.max(0.36, Math.min(cam.scale, need));
+    cam.x=vw/2-(r.x+r.w/2)*cam.scale;
+    cam.y=vh/2-(r.y+r.h/2)*cam.scale;
+    applyCam(animate!==false);
+  }
+
+  function drawLrc(){
+    const nd=nodes[expanded];
+    if(!nd) return;
+    const box=nd.el.querySelector(".wall-lrc");
+    if(!box) return;
+    if(!lyrics.length){ if(box.dataset.sig!=="none"){ box.textContent=""; box.dataset.sig="none"; } return; }
+    const cur=audio.currentTime||0;
+    let idx=-1;
+    for(let i=0;i<lyrics.length;i++){ if(lyrics[i].t<=cur) idx=i; else break; }
+    const sig=idx+"|"+lyrics.length;
+    if(box.dataset.sig===sig) return;
+    box.dataset.sig=sig;
+    box.textContent="";
+    for(let k=-1;k<=2;k++){
+      const l=lyrics[idx+k];
+      if(!l) continue;
+      const d=document.createElement("div");
+      d.className="ln"+(k===0?" cur":"");
+      d.textContent=l.content||"";
+      box.appendChild(d);
+    }
+  }
+
+  function tick(){
+    if(!document.body.classList.contains("folia")) return;
+    const nd=nodes[expanded];
+    if(!nd) return;
+    const el=nd.el;
+    const dur=isFinite(audio.duration)?audio.duration:0;
+    const bar=el.querySelector(".wall-bar i");
+    if(bar) bar.style.width=(dur>0?Math.min(100,(audio.currentTime||0)/dur*100):0)+"%";
+    const tm=el.querySelector(".wall-time");
+    if(tm) tm.textContent=fmt(audio.currentTime)+" / "+fmt(dur);
+    const pb=el.querySelector(".wall-playbtn");
+    if(pb){
+      const paused=!!audio.paused, key=String(paused);
+      if(pb.dataset.p!==key){ pb.dataset.p=key; pb.innerHTML=paused?ICON_PLAY:ICON_PAUSE; }
+    }
+    drawLrc();
+  }
+  function startTick(){ if(!tickTimer) tickTimer=setInterval(tick,240); }
+  function stopTick(){ if(tickTimer){ clearInterval(tickTimer); tickTimer=0; } }
+
+  function sync(){
+    for(const nd of nodes){
+      nd.el.classList.toggle("is-current", +nd.el.dataset.idx===currentIdx);
+    }
+  }
+
+  function togglePlayback(){
+    if(audio.paused) audio.play().catch(()=>{});
+    else audio.pause();
+  }
+
+  /* —— 交互：拖拽平移 / 滚轮缩放 / 点卡放大 —— */
+  field.addEventListener("pointerdown",e=>{
+    if(e.button) return;
+    if(e.target.closest(".wall-ctrl")) return;
+    dragging=true; didDrag=false; pt={x:e.clientX,y:e.clientY}; cam0={x:cam.x,y:cam.y};
+    try{ field.setPointerCapture(e.pointerId); }catch(_){}
+  });
+  field.addEventListener("pointermove",e=>{
+    if(!dragging) return;
+    const dx=e.clientX-pt.x, dy=e.clientY-pt.y;
+    if(Math.abs(dx)>4||Math.abs(dy)>4) didDrag=true;
+    cam.x=cam0.x+dx; cam.y=cam0.y+dy;
+    applyCam();
+  });
+  const endDrag=()=>{ dragging=false; };
+  field.addEventListener("pointerup",endDrag);
+  field.addEventListener("pointercancel",endDrag);
+
+  field.addEventListener("wheel",e=>{
+    e.preventDefault();
+    const next=Math.max(0.34, Math.min(1.15, cam.scale*Math.exp(-e.deltaY*0.0012)));
+    const px=(e.clientX-cam.x)/cam.scale, py=(e.clientY-cam.y)/cam.scale;
+    cam.scale=next;
+    cam.x=e.clientX-px*next; cam.y=e.clientY-py*next;
+    applyCam();
+  },{passive:false});
+
+  field.addEventListener("click",e=>{
+    const card=e.target.closest(".wall-card");
+    if(didDrag){ didDrag=false; return; }
+    if(!card) return;
+    const i=+card.dataset.idx;
+    if(e.target.closest(".wall-playbtn")){ togglePlayback(); return; }
+    if(e.target.closest(".wall-open")){ const b=document.getElementById("ppOpenBtn"); if(b) b.click(); return; }
+    if(e.target.closest(".wall-bar")){
+      const sk=card.querySelector(".wall-bar");
+      const rc=sk.getBoundingClientRect();
+      const p=Math.max(0,Math.min(1,(e.clientX-rc.left)/Math.max(1,rc.width)));
+      if(isFinite(audio.duration)&&audio.duration>0){ audio.currentTime=p*audio.duration; tick(); }
+      return;
+    }
+    if(i===expanded){
+      if(i===currentIdx) togglePlayback();
+      return;
+    }
+    expanded=i;
+    build();
+    panTo(expanded);
+    if(i!==currentIdx) playSong(i);
+    else sync();
+  });
+
+  backBtn.addEventListener("click",()=>{ if(typeof setFolia==="function") setFolia(false); });
+  window.addEventListener("keydown",e=>{
+    if(e.key==="Escape" && document.body.classList.contains("folia") && typeof setFolia==="function") setFolia(false);
+  });
+
+  window.addEventListener("resize",()=>{
+    if(!document.body.classList.contains("folia")) return;
+    cam.scale=scaleFor();
+    if(expanded>=0) panTo(expanded,false); else applyCam();
+  });
+
+  /* —— 对外接口 —— */
+  api.open=()=>{
+    cam={x:34,y:80,scale:scaleFor()};
+    if(expanded<0 && currentIdx>=0) expanded=currentIdx;
+    build();
+    if(expanded>=0) panTo(expanded,false); else applyCam(false);
+    startTick();
+  };
+  api.close=()=>{ stopTick(); };
+  api.onSongs=()=>{ if(document.body.classList.contains("folia")) build(); };
+  api.onSong=()=>{
+    if(!document.body.classList.contains("folia")) return;
+    if(expanded<0 || expanded!==currentIdx){ expanded=currentIdx; build(); panTo(expanded); }
+    sync();
+  };
+  api.sync=sync;
+  return api;
+})();
+
 function applyView(){
   document.body.classList.toggle("folia", foliaView);
-  songListEl.classList.toggle("folia", foliaView);
-  viewToggle.textContent = foliaView ? "≡ 列表" : "◈ 沉浸";
+  viewToggle.textContent = foliaView ? "≡ 列表" : "◈ 海报墙";
   syncParticles();
-  if(songs.length) renderSongs(); // 沉浸模式换大图封面
+  if(foliaView) WALL.open(); else WALL.close();
 }
-viewToggle.addEventListener("click",()=>{
-  foliaView = !foliaView;
+function setFolia(v){
+  foliaView=!!v;
   store.set('yy_folia', foliaView);
   applyView();
-});
+}
+viewToggle.addEventListener("click",()=>setFolia(!foliaView));
 
 /* ---------- State memory ---------- */
 function saveState(s, pos){
