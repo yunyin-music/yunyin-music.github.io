@@ -3137,50 +3137,43 @@ var WALL = (function(){
   /* —— 交互：拖拽平移 / 滚轮缩放 / 点卡放大 —— */
   field.addEventListener("pointerdown",e=>{
     if(e.button) return;
-    if(e.target.closest(".wall-ctrl")) return;
-    dragging=true; didDrag=false; pt={x:e.clientX,y:e.clientY}; cam0={x:cam.x,y:cam.y};
-    world.classList.add("dragging");
-    try{ field.setPointerCapture(e.pointerId); }catch(_){}
+    didDrag=false; // 每次按下都重置，避免上一次拖拽把后续点击吞掉
+    if(e.target.closest(".wall-ctrl,.wall-full,.wall-bar")) return;
+    dragging=true; pt={x:e.clientX,y:e.clientY}; cam0={x:cam.x,y:cam.y};
+    // 注意：这里不能立刻 setPointerCapture —— 指针捕获会把 pointerup 的目标改成 field，
+    // 导致 click 目标变成 field，卡片和按钮的 click 永远不会命中。只有确认是拖拽后才捕获。
   });
   field.addEventListener("pointermove",e=>{
     if(!dragging) return;
     const dx=e.clientX-pt.x, dy=e.clientY-pt.y;
-    if(Math.abs(dx)>4||Math.abs(dy)>4) didDrag=true;
+    if(!didDrag){
+      if(dx*dx+dy*dy<=64) return; // 小于 8px 视为手指/鼠标抖动，仍是点击
+      didDrag=true;
+      world.classList.add("dragging");
+      try{ field.setPointerCapture(e.pointerId); }catch(_){}
+    }
     cam.x=cam0.x+dx; cam.y=cam0.y+dy;
     applyCam();
   });
   const endDrag=()=>{ dragging=false; world.classList.remove("dragging"); };
-  field.addEventListener("pointerup",endDrag);
-  field.addEventListener("pointercancel",endDrag);
 
-  field.addEventListener("wheel",e=>{
-    e.preventDefault();
-    const next=Math.max(0.34, Math.min(1.15, cam.scale*Math.exp(-e.deltaY*0.0012)));
-    const px=(e.clientX-cam.x)/cam.scale, py=(e.clientY-cam.y)/cam.scale;
-    cam.scale=next;
-    cam.x=e.clientX-px*next; cam.y=e.clientY-py*next;
-    applyCam();
-  },{passive:false});
-
-  field.addEventListener("click",e=>{
-    const card=e.target.closest(".wall-card");
-    if(didDrag){ didDrag=false; return; }
-    if(!card) return;
+  /* 卡片统一的激活逻辑：小卡点一下 → 就地放大 + 播放；按钮各走各的分支 */
+  function activate(card, target, clientX){
     const i=+card.dataset.idx;
-    if(e.target.closest(".wall-playbtn")){ togglePlayback(); return; }
-    if(e.target.closest(".wall-full")){
+    if(target.closest(".wall-playbtn")){ togglePlayback(); return; }
+    if(target.closest(".wall-full")){
       // 全屏：封面铺满整屏并开始播放当前卡片的歌
       if(i!==currentIdx && typeof playSong==="function") playSong(i);
       else if(audio.paused) audio.play().catch(()=>{});
       openZoom(i);
       return;
     }
-    if(e.target.closest(".wall-prev")){ if(typeof playSong==="function"){ const p=(currentIdx-1+songs.length)%songs.length; playSong(p); } return; }
-    if(e.target.closest(".wall-next")){ if(typeof playSong==="function"){ const p=(currentIdx+1)%songs.length; playSong(p); } return; }
-    if(e.target.closest(".wall-bar")){
+    if(target.closest(".wall-prev")){ if(typeof playSong==="function") playSong((currentIdx-1+songs.length)%songs.length); return; }
+    if(target.closest(".wall-next")){ if(typeof playSong==="function") playSong((currentIdx+1)%songs.length); return; }
+    if(target.closest(".wall-bar")){
       const sk=card.querySelector(".wall-bar");
       const rc=sk.getBoundingClientRect();
-      const p=Math.max(0,Math.min(1,(e.clientX-rc.left)/Math.max(1,rc.width)));
+      const p=Math.max(0,Math.min(1,(clientX-rc.left)/Math.max(1,rc.width)));
       if(isFinite(audio.duration)&&audio.duration>0){ audio.currentTime=p*audio.duration; tick(); }
       return;
     }
@@ -3195,7 +3188,40 @@ var WALL = (function(){
       return;
     }
     if(i!==currentIdx && typeof playSong==="function") playSong(i);
+  }
+
+  /* 点击判定放在 pointerup：不依赖原生 click，避免指针捕获/手势取消把 click 吞掉（真机上就是这个坑） */
+  let tapStamp=0;
+  field.addEventListener("pointerup",e=>{
+    const tap = dragging && !didDrag;
+    endDrag();
+    if(!tap) return;
+    const card=e.target.closest(".wall-card");
+    if(!card) return;
+    tapStamp=performance.now();
+    activate(card, e.target, e.clientX);
   });
+  field.addEventListener("pointercancel",endDrag);
+  window.addEventListener("pointerup",()=>{ if(dragging) endDrag(); });
+  window.addEventListener("blur",endDrag);
+
+  /* 键盘/程序触发的 click（展开卡里的按钮仍靠它） */
+  field.addEventListener("click",e=>{
+    if(performance.now()-tapStamp<400) return; // 已由 pointerup 处理过
+    const card=e.target.closest(".wall-card");
+    if(!card) return;
+    if(didDrag){ didDrag=false; return; }
+    activate(card, e.target, e.clientX);
+  });
+
+  field.addEventListener("wheel",e=>{
+    e.preventDefault();
+    const next=Math.max(0.34, Math.min(1.15, cam.scale*Math.exp(-e.deltaY*0.0012)));
+    const px=(e.clientX-cam.x)/cam.scale, py=(e.clientY-cam.y)/cam.scale;
+    cam.scale=next;
+    cam.x=e.clientX-px*next; cam.y=e.clientY-py*next;
+    applyCam();
+  },{passive:false});
 
   backBtn.addEventListener("click",()=>{ if(typeof setFolia==="function") setFolia(false); });
   window.addEventListener("keydown",e=>{
