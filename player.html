@@ -706,74 +706,119 @@
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  /* ---------- Folia 沉浸视图：粒子画布 + 卡片网格 ---------- */
+  /* ---------- Folia(Lattice) 海报墙：直角海报+颗粒+暗角+双色辉光 ---------- */
   .list-stage{position:relative;min-height:0;display:flex;flex-direction:column}
   .list-stage .song-list{flex:1}
   .stage-particles{
     position:absolute;inset:0;width:100%;height:100%;z-index:0;
     pointer-events:none;opacity:0;transition:opacity .7s ease;
   }
-  body.folia .stage-particles{opacity:1}
+  body.folia .stage-particles{opacity:1!important;transition:none}
+  /* 墙面：双色径向辉光（accent 左上 + secondary 右下，源码 wall.css .lattice-root） */
+  body.folia .list-stage{
+    background:
+      radial-gradient(circle at 14% 12%, rgba(253,92,71,.15), transparent 29%),
+      radial-gradient(circle at 86% 82%, rgba(106,72,255,.20), transparent 32%),
+      #070707;
+  }
+  /* 颗粒噪点（feTurbulence soft-light，源码 .lattice-root::after） */
+  body.folia .list-stage::before{
+    content:"";position:absolute;inset:0;z-index:30;pointer-events:none;opacity:.13;
+    mix-blend-mode:soft-light;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+  }
+  /* 浅暗角（源码 .has-vignette::before） */
+  body.folia .list-stage::after{
+    content:"";position:absolute;inset:0;z-index:29;pointer-events:none;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 78%, rgba(0,0,0,.45) 100%);
+  }
   .pp-particles{
     position:absolute;inset:0;width:100%;height:100%;z-index:1;
     pointer-events:none;opacity:.9;mix-blend-mode:screen;
   }
   .song-list.folia{
-    display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));
-    gap:14px;padding:16px 18px 26px;align-content:start;
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));
+    gap:16px;padding:18px 20px 32px;align-content:start;
   }
+  /* 海报卡：直角、无玻璃、3:4 竖幅，源码 .lattice-poster */
   .song-list.folia .song-row{
-    display:flex;flex-direction:column;align-items:stretch;min-width:0;padding:10px;border-radius:18px;
-    background:var(--glass);border:1px solid var(--border);
-    backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);
-    box-shadow:0 6px 24px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.05);
-    transition:transform .3s cubic-bezier(.4,0,.2,1),border-color .3s,box-shadow .3s;
-    position:relative;
+    position:relative;display:block;min-width:0;padding:0;margin:0;
+    border-radius:0;border:0;overflow:hidden;aspect-ratio:3/4;
+    background-color:#161419;cursor:pointer;
+    outline:1px solid rgba(255,255,255,.05);outline-offset:-1px;
+    transition:outline-color .3s ease,filter .6s ease;
+    content-visibility:auto;contain-intrinsic-size:auto 240px;
   }
-  .song-list.folia .song-row:hover{
-    transform:translateY(-4px);border-color:rgba(167,139,250,.45);
-    box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 0 1px rgba(167,139,250,.18),0 10px 34px var(--accent-glow);
+  /* 首卡跨两列横幅（拼贴感） */
+  .song-list.folia .song-row:first-child{grid-column:span 2;aspect-ratio:16/10}
+  /* 海报底部压暗渐变（源码 .lattice-poster-shade） */
+  .song-list.folia .song-row::before{
+    content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+    background:linear-gradient(180deg, rgba(0,0,0,.05) 34%, rgba(0,0,0,.24) 56%, rgba(0,0,0,.92) 100%);
   }
-  .song-list.folia .song-row.playing{border-color:rgba(167,139,250,.7);background:linear-gradient(160deg,rgba(167,139,250,.14),var(--glass) 55%)}
-  /* 序号 → 左上角悬浮徽章 */
+  /* 背景卡安静 tint，悬停/播放中揭开（源码 .lattice-poster-tint） */
+  .song-list.folia .song-row::after{
+    content:"";position:absolute;inset:0;z-index:3;pointer-events:none;opacity:.5;
+    background:linear-gradient(145deg, rgba(7,7,7,.80), rgba(7,7,7,.86));
+    transition:opacity .26s ease;
+  }
+  .song-list.folia .song-row:hover::after,
+  .song-list.folia .song-row.playing::after{opacity:0}
+  /* 悬停：提亮提饱和 + 抬升投影（源码 .lattice-poster:hover / elevation） */
+  .song-list.folia .song-row:hover{filter:saturate(1.08) brightness(1.06);z-index:3;outline-color:rgba(255,255,255,.14)}
+  /* 播放中：accent 2px 内描边 + 内发光（源码 .is-current::before） */
+  .song-list.folia .song-row.playing{outline:2px solid var(--accent);outline-offset:-2px;z-index:2}
+  .song-list.folia .song-row.playing .thumb::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.52), inset 0 0 22px -6px color-mix(in srgb,var(--accent) 52%,transparent);
+    animation:ppGlowPulse 2.4s ease-in-out infinite;
+  }
+  /* 序号徽章：直角、11px/800/tabular（源码 .lattice-poster-badge） */
   .song-list.folia .song-row .idx{
-    position:absolute;top:16px;left:16px;z-index:2;width:auto;height:26px;min-width:26px;
-    padding:0 7px;border-radius:9px;background:rgba(9,9,11,.72);
-    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-    border:1px solid rgba(255,255,255,.09);font-size:12px;
+    position:absolute;top:14px;left:14px;z-index:4;display:inline-flex;align-items:center;gap:2px;
+    width:auto;min-width:0;height:auto;padding:5px 8px;margin:0;
+    border-radius:0;border:0;background:rgba(0,0,0,.62);
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+    font-size:11px;font-weight:800;letter-spacing:.12em;font-variant-numeric:tabular-nums;
+    color:#f7f4ee;
   }
-  /* 大封面 */
-  .song-list.folia .song-row .song-info{display:block;margin:0}
+  .song-list.folia .song-row .idx .num{color:inherit}
+  .song-list.folia .song-row .idx .play-mini{display:none}
+  .song-list.folia .song-row.playing .idx{background:rgba(0,0,0,.78);color:var(--accent)}
+  /* 封面铺满整卡 */
+  .song-list.folia .song-row .song-info{display:contents;margin:0}
   .song-list.folia .song-row .thumb{
-    width:100%;height:0;padding-bottom:100%;border-radius:12px;overflow:hidden;position:relative;
-    background:linear-gradient(135deg,#1c1c20,#121214);margin:0;
+    position:absolute;inset:0;width:100%;height:100%;padding-bottom:0;
+    border-radius:0;overflow:hidden;background:#101013;margin:0;
   }
-  .song-list.folia .song-row .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .5s cubic-bezier(.4,0,.2,1)}
-  .song-list.folia .song-row:hover .thumb img{transform:scale(1.06)}
-  /* 文字区 */
-  .song-list.folia .song-row .meta{margin:10px 2px 0;min-width:0;max-width:100%}
-  .song-list.folia .song-row .title{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .song-list.folia .song-row .artist{font-size:11.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  /* 专辑/时长隐藏，收藏 → 右上角悬浮 */
+  .song-list.folia .song-row .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
+  .song-list.folia .song-row:hover .thumb img{transform:scale(1.045)}
+  /* 文案：右下角超大紧排标题（源码 .lattice-poster-copy strong） */
+  .song-list.folia .song-row .meta{
+    position:absolute;left:17px;right:17px;bottom:15px;z-index:4;
+    display:flex;flex-direction:column;gap:5px;margin:0;min-width:0;max-width:100%;
+  }
+  .song-list.folia .song-row .title{
+    font-size:clamp(20px,1.8vw,32px);line-height:.96;letter-spacing:-.045em;font-weight:700;
+    color:#f7f4ee;text-shadow:0 2px 16px rgba(0,0,0,.6);
+    white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .song-list.folia .song-row .artist{
+    font-size:13px;font-weight:650;opacity:.78;color:#f7f4ee;margin:0;letter-spacing:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
   .song-list.folia .song-row .album,
   .song-list.folia .song-row .duration{display:none}
+  /* 收藏 → 右上角方形徽章 */
   .song-list.folia .song-row .more{
-    position:absolute;top:16px;right:16px;z-index:2;
-    background:rgba(9,9,11,.72);border-radius:9px;padding:2px;
-    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-    border:1px solid rgba(255,255,255,.09);
-  }
-  /* 播放中行：封面呼吸光圈 */
-  .song-list.folia .song-row.playing .thumb::after{
-    content:"";position:absolute;inset:0;border-radius:12px;
-    box-shadow:0 0 0 2px var(--accent),0 0 26px var(--accent-glow);
-    animation:ppGlowPulse 2.4s ease-in-out infinite;pointer-events:none;
+    position:absolute;top:12px;right:12px;z-index:4;
+    background:rgba(0,0,0,.62);border-radius:0;border:0;padding:4px 7px;
+    backdrop-filter:none;-webkit-backdrop-filter:none;
   }
   @media (max-width:600px){
-    .song-list.folia{grid-template-columns:repeat(2,1fr);gap:10px;padding:12px 12px 20px}
-    .song-list.folia .song-row{padding:8px;border-radius:14px}
-    .song-list.folia .song-row .idx{top:14px;left:14px}
-    .song-list.folia .song-row .more{top:14px;right:14px}
+    .song-list.folia{grid-template-columns:repeat(2,1fr);gap:12px;padding:14px 14px 24px}
+    .song-list.folia .song-row:first-child{grid-column:span 2}
+    .song-list.folia .song-row .title{font-size:18px}
   }
 
 </style>
@@ -1294,7 +1339,7 @@ function renderSongs(){
         <span class="playing-anim"><span></span><span></span><span></span></span>
       </div>
       <div class="song-info">
-        <div class="thumb">${s.pic?`<img src="${thumbUrl(s.pic,foliaOn?420:120)}" alt="" loading="lazy"/>`:""}</div>
+        <div class="thumb">${s.pic?`<img src="${thumbUrl(s.pic,foliaOn?270:120)}" alt="" loading="lazy" decoding="async"/>`:""}</div>
         <div class="meta">
           <div class="title">${s.name}</div>
           <div class="artist">${s.artist}</div>
@@ -2055,70 +2100,138 @@ const GLOWS = [
 ];
 function hashSong(id){ let h=0; for(const ch of String(id)) h=(h*31+ch.charCodeAt(0))>>>0; return h; }
 
-/* ---------- Folia 粒子引擎（歌单沉浸视图 + 播放页共用） ---------- */
+/* ---------- Diorama 粒子引擎（Folia 风格：云团聚类+双层辉光+节拍脉动+溶解转场） ---------- */
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 function makeParticles(canvas){
   const ctx = canvas.getContext("2d");
-  let parts = [], W = 0, H = 0, raf = null, active = false, mx = .5, my = .5;
-  function palette(){
+  let W = 0, H = 0, raf = null, active = false, mx = .5, my = .5;
+  let parts = [], clusters = [], pal = [[253,92,71],[106,72,255]];
+  let bpm = 112, beatPhase = 0, lastBeatIdx = -1, kick = 0, kx = 0, ky = 0;
+  let mode = "in", modeT = 0, pendingRebuild = false; // in: 淡入成形 / out: 溶解飞散
+  function setPalette(){
     const s = songs[currentIdx];
-    return (s ? GLOWS[hashSong(s.id)%GLOWS.length] : GLOWS[0]).map(c=>c.split(",").map(Number));
+    if(s){
+      pal = GLOWS[hashSong(s.id)%GLOWS.length].map(c=>c.split(",").map(Number));
+      const h = hashSong(s.id);
+      bpm = 92 + h%46;               // 每首歌一个稳定"心跳"
+      beatPhase = (h%97)/97*6.28;
+    }
   }
-  function init(){
-    parts = [];
-    const n = Math.max(24, Math.min(85, Math.round(W*H/16000)));
-    const pal = palette();
+  function sprite(col){
+    const s = document.createElement("canvas"); s.width = s.height = 64;
+    const g = s.getContext("2d");
+    const grd = g.createRadialGradient(32,32,2,32,32,30);
+    grd.addColorStop(0, `rgba(${col[0]},${col[1]},${col[2]},.9)`);
+    grd.addColorStop(.35, `rgba(${col[0]},${col[1]},${col[2]},.30)`);
+    grd.addColorStop(1, `rgba(${col[0]},${col[1]},${col[2]},0)`);
+    g.fillStyle = grd; g.fillRect(0,0,64,64);
+    return s;
+  }
+  function build(){
+    // 云团聚类（源码 clouds 模式）：3-6 个簇锚点，粒子高斯散布在簇周围
+    clusters = [];
+    const n = Math.max(3, Math.min(6, Math.round(W*H/240000)+2));
     for(let i=0;i<n;i++){
+      clusters.push({
+        x:(0.12+Math.random()*.76)*W, y:(0.12+Math.random()*.76)*H,
+        r:Math.min(W,H)*(.10+Math.random()*.15),
+        ph:Math.random()*6.28, bx:(Math.random()-.5)*16, by:(Math.random()-.5)*12,
+      });
+    }
+    parts = [];
+    const total = Math.max(26, Math.min(64, Math.round(W*H/14000)));
+    for(let i=0;i<total;i++){
+      const c = clusters[i%clusters.length];
+      const a = Math.random()*6.283, d = c.r*Math.sqrt(Math.random());
       const t = Math.random();
-      const c = pal[0].map((v,k)=>Math.round(v+(pal[1][k]-v)*t)); // 双色插值
+      const col = pal[0].map((v,k)=>Math.round(v+(pal[1][k]-v)*t));
       parts.push({
-        x:Math.random()*W, y:Math.random()*H,
-        r:.8+Math.random()*2.6,
-        c:`rgb(${c[0]},${c[1]},${c[2]})`,
-        a:.10+Math.random()*.32,
-        vy:-(.10+Math.random()*.38),
-        ph:Math.random()*Math.PI*2, sw:.004+Math.random()*.010,
-        tw:Math.random()*Math.PI*2, tv:.008+Math.random()*.02,
+        hx:c.x+Math.cos(a)*d, hy:c.y+Math.sin(a)*d, x:0, y:0,
+        r:.9+Math.random()*2.4, al:.42+Math.random()*.5,
+        ph:Math.random()*6.28, sw:.2+Math.random()*.5,
+        c, cl:c, sp:sprite(col), dx:0, dy:0,
       });
     }
   }
-  function draw(){
+  function frame(now){
+    if(!active){ raf = null; return; }
+    raf = requestAnimationFrame(frame);
+    if(document.hidden) return;
+    const dt = Math.min(.05, (now-(frame.__t||now))/1000); frame.__t = now;
+    // 节拍时钟：到拍踢一脚，粒子群外扩回弹（源码 ripple/beat 的 2D 神似）
+    const beat = (now/1000)*(bpm/60) + beatPhase;
+    const bi = Math.floor(beat);
+    if(bi !== lastBeatIdx){
+      lastBeatIdx = bi;
+      kick = bi%4===0 ? 1 : .45; // 每小节头一拍更重
+      const c = clusters[bi%Math.max(1,clusters.length)];
+      if(c){ kx=c.x; ky=c.y; }
+    }
+    kick *= Math.exp(-dt*2.8);
+    // 溶解/成形转场状态机
+    if(mode==="out"){
+      modeT += dt;
+      if(modeT>=.42){ setPalette(); build(); mode="in"; modeT=0; }
+    }else if(mode==="in"){
+      modeT = Math.min(1, modeT+dt/.7);
+    }
+    const fOut = mode==="out" ? Math.min(1, modeT/.42) : 0;
+    const fIn  = mode==="in"  ? modeT : 1;
+    // 绘制
     ctx.clearRect(0,0,W,H);
     ctx.globalCompositeOperation = "lighter";
+    const breath = .24 + .13*Math.sin(now/1000*.5 + beatPhase);
+    const swell = breath + kick*.7; // 整体膨胀系数
     for(const p of parts){
-      p.y += p.vy; p.ph += p.sw; p.tw += p.tv;
-      if(p.y < -8){ p.y = H+8; p.x = Math.random()*W; }
-      const px = p.x + Math.sin(p.ph)*14 + (mx-.5)*18*p.r;
-      const py = p.y + (my-.5)*10*p.r;
-      ctx.beginPath();
-      ctx.fillStyle = p.c;
-      ctx.globalAlpha = p.a * (0.65 + 0.35*Math.sin(p.tw)); // 闪烁
-      ctx.arc(px, py, p.r, 0, Math.PI*2);
-      ctx.fill();
+      const sway = Math.sin(now*.00045*p.sw + p.ph);
+      const cx = p.cl.x + Math.sin(now*.0002 + p.cl.ph)*p.cl.bx;
+      const cy = p.cl.y + Math.cos(now*.00016 + p.cl.ph)*p.cl.by;
+      // 节拍波纹：从拍点向外的高斯波包
+      const kd = Math.hypot(p.hx-kx, p.hy-ky);
+      const wave = kick * 34 * Math.exp(-kd/170) * Math.sin(kd*.045 - now*.006);
+      // 膨胀：沿簇心向外推
+      const ddx = p.hx-cx, ddy = p.hy-cy, dl = Math.hypot(ddx,ddy)||1;
+      const push = swell * 26 * (p.r/3);
+      let px = cx + ddx/dl*(dl+push) + sway*13 + (mx-.5)*22*p.r + wave*ddx/dl;
+      let py = cy + ddy/dl*(dl+push) + Math.cos(now*.00038*p.sw + p.ph*1.7)*10 + (my-.5)*14*p.r + wave*ddy/dl;
+      // 溶解：沿"簇心→粒子"方向加速飞散 + 淡出
+      let a = p.al * (.55+.45*Math.sin(p.ph + now*.0012)) * fIn;
+      if(fOut>0){
+        px += (ddx/dl)*fOut*130; py += (ddy/dl)*fOut*130;
+        a *= (1-fOut);
+      }
+      if(a<=0.01) continue;
+      const R = p.r * (1 + kick*.5);
+      // 双层：大辉光晕 + 小亮核（源码 glow pass + contrast points）
+      ctx.globalAlpha = a*.5;
+      ctx.drawImage(p.sp, px-R*5, py-R*5, R*10, R*10);
+      ctx.globalAlpha = Math.min(1, a*1.15);
+      ctx.fillStyle = `rgb(${p.c[0]},${p.c[1]},${p.c[2]})`;
+      ctx.beginPath(); ctx.arc(px, py, R*.55, 0, 6.283); ctx.fill();
     }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = "source-over";
-  }
-  function frame(){
-    if(!active){ raf = null; return; }
-    if(!document.hidden) draw();
-    raf = requestAnimationFrame(frame);
   }
   function resize(){
     const dpr = Math.min(window.devicePixelRatio||1, 2);
     W = canvas.clientWidth; H = canvas.clientHeight;
     canvas.width = Math.max(1, W*dpr); canvas.height = Math.max(1, H*dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0);
-    init();
-    if(reducedMotion) draw();
+    setPalette(); build();
+    if(reducedMotion){ /* 静态一帧 */ active=true; frame(performance.now()); active=false; }
   }
   function start(){
-    if(reducedMotion){ draw(); return; } // 减少动态：仅静态一帧
+    if(reducedMotion) return;
     if(active) return;
     active = true;
+    frame.__t = 0;
     if(!raf) raf = requestAnimationFrame(frame);
   }
   function stop(){ active = false; }
+  function dissolve(){ // 换歌：溶解飞散 → 新色板重组
+    if(reducedMotion || mode==="out" || !parts.length) return;
+    mode = "out"; modeT = 0;
+  }
   canvas.parentElement.addEventListener("pointermove",(e)=>{
     const rc = canvas.getBoundingClientRect();
     mx = (e.clientX-rc.left)/Math.max(1,rc.width);
@@ -2126,7 +2239,7 @@ function makeParticles(canvas){
   });
   window.addEventListener("resize", ()=>{ clearTimeout(canvas.__rz); canvas.__rz = setTimeout(resize,200); });
   resize();
-  return {start, stop, resize, recolor:init};
+  return {start, stop, resize, recolor:dissolve};
 }
 const listFx = makeParticles(document.getElementById("listParticles"));
 const ppFx = makeParticles(document.getElementById("ppParticles"));
