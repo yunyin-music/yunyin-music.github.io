@@ -1271,6 +1271,7 @@ async function playSong(idx){
   audio.src = url;
   audio.play().then(()=>{
     setPlaying(true);
+    preloadNext(idx); // 汽水式无缝切歌：提前取好下一首的播放链接
   }).catch(err=>{
     if(restoring){
       restoring = false;
@@ -1282,6 +1283,12 @@ async function playSong(idx){
   });
 }
 
+// 预加载下一首播放链接：切歌零等待（链接约20分钟有效，预载后立即用没问题）
+function preloadNext(idx){
+  const nx = songs[(idx+1) % songs.length];
+  if(!nx || nx.url) return;
+  ensurePlayUrl(nx).then(u=>{ if(nx===songs[(currentIdx+1)%songs.length]) nx.url = u; }).catch(()=>{});
+}
 function setPlaying(playing){
   if(playing){
     playIcon.innerHTML = '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
@@ -1990,6 +1997,11 @@ function openPlayPage(){
   if(s) updatePlayPage(s);
   syncPlayPageState();
   if(s) loadComments(s);   // 自动加载评论：弹幕、评论数、评论区共用
+  // 汽水式手势一次性提示
+  if(!store.get('yy_swhint',false)){
+    store.set('yy_swhint',true);
+    setTimeout(()=>toast("上滑唱片切下一首 · 长按 2 倍速"),900);
+  }
 }
 function closePlayPage(){ playPage.classList.remove("open"); }
 function syncPlayPageState(){
@@ -2046,11 +2058,59 @@ function buildDanmaku(songId, hot){
     ppDanmaku.appendChild(el);
   });
 }
+/* ---------- 汽水式交互：长按唱片 2 倍速 / 上下滑切歌 ---------- */
+const discWrap = document.querySelector(".pp-disc-wrap");
+let lpTimer = null, lpActive = false;
+function startLongPress(){
+  if(playPage.classList.contains("flipped")) return; // 背面信息卡不触发
+  lpTimer = setTimeout(()=>{
+    lpActive = true;
+    audio.playbackRate = 2;
+    toast("2 倍速播放中，松开恢复");
+  }, 420);
+}
+function endLongPress(){
+  clearTimeout(lpTimer);
+  if(lpActive){ lpActive = false; audio.playbackRate = 1; }
+}
+if(discWrap){
+  // 触屏
+  discWrap.addEventListener("touchstart",startLongPress,{passive:true});
+  discWrap.addEventListener("touchend",endLongPress);
+  discWrap.addEventListener("touchcancel",endLongPress);
+  discWrap.addEventListener("touchmove",()=>clearTimeout(lpTimer),{passive:true});
+  // 鼠标（桌面长按同理）
+  discWrap.addEventListener("mousedown",startLongPress);
+  discWrap.addEventListener("mouseup",endLongPress);
+  discWrap.addEventListener("mouseleave",endLongPress);
+  // 上下滑切歌（唱片区）：上滑下一首、下滑上一首，桌面滚轮同样生效
+  let sy = 0, sx = 0;
+  discWrap.addEventListener("touchstart",(e)=>{ const t=e.touches[0]; sy=t.clientY; sx=t.clientX; },{passive:true});
+  discWrap.addEventListener("touchend",(e)=>{
+    const t = e.changedTouches[0];
+    const dy = t.clientY - sy, dx = t.clientX - sx;
+    if(Math.abs(dy)>55 && Math.abs(dx)<60){
+      if(lpActive) endLongPress();
+      dy<0 ? nextSong() : prevSong();
+    }
+  },{passive:true});
+  let wheelLock = 0;
+  discWrap.addEventListener("wheel",(e)=>{
+    const now = Date.now();
+    if(now - wheelLock < 700) return;
+    if(Math.abs(e.deltaY)<20) return;
+    wheelLock = now;
+    e.deltaY>0 ? nextSong() : prevSong();
+  },{passive:true});
+}
+// 长按后松开不再触发翻面
 ppFlip.addEventListener("click",()=>{
+  if(window.__lpGuard){ window.__lpGuard=false; return; }
   playPage.classList.toggle("flipped");
   const s = songs[currentIdx];
   if(s && playPage.classList.contains("flipped")) loadComments(s);
 });
+document.addEventListener("pointerup",()=>{ if(lpActive) window.__lpGuard=true; });
 function switchPpTab(t){
   ppTab = t;
   ppTabLrc.classList.toggle("active",t==="lrc");
@@ -2171,6 +2231,7 @@ const qFavFile = document.getElementById("qFavFile");
 qBr.value = store.get('yy_br',"320") || "320";
 qBr.addEventListener("change", async ()=>{
   store.set('yy_br', qBr.value);
+  songs.forEach(x=>{ if(x!==songs[currentIdx]) x.url=""; }); // 清空预载链接（音质已变）
   const label = qBr.selectedOptions[0].text;
   const s = songs[currentIdx];
   if(!s || !audio.src){ toast("音质已设为 "+label); return; }
