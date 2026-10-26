@@ -1100,6 +1100,37 @@
     .wall-zoom-ctrl .z-play{width:48px;height:48px}
     .wall-zoom-close{top:calc(12px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));width:34px;height:34px;font-size:18px}
   }
+  /* 全屏播放卡跟随系统/浏览器浅色模式：暖米白底 + 深色文字，和浏览器自身底色衔接不突兀 */
+  @media (prefers-color-scheme: light){
+    .wall-zoom{background:#f3f1ec}
+    .wall-zoom-bg{filter:blur(74px) saturate(1.12) brightness(1.04)}
+    .wall-zoom.show .wall-zoom-bg{opacity:.38}
+    .wall-zoom-bg::after{
+      background:radial-gradient(120% 90% at 50% 42%, rgba(255,255,255,.30) 0%, rgba(242,240,235,.9) 100%);
+    }
+    .wall-zoom-glow{opacity:.26}
+    .wall-zoom.show .wall-zoom-glow{opacity:.32}
+    .wall-zoom-art{
+      box-shadow:0 30px 70px rgba(24,20,30,.22), inset 0 0 0 1px rgba(0,0,0,.06);
+    }
+    .wall-zoom-info{color:#1b1b1f;text-shadow:none}
+    .wall-zoom-info small{color:rgba(0,0,0,.55);opacity:1}
+    .wall-zoom-close{
+      background:rgba(255,255,255,.72);border-color:rgba(0,0,0,.12);color:#1b1b1f;
+    }
+    .wall-zoom-close:hover{background:#fff}
+    .wall-zoom-prog::before{background:rgba(0,0,0,.14)}
+    .wall-zoom-prog i{background:#2f9e96;box-shadow:0 0 10px rgba(47,158,150,.35)}
+    .wall-zoom-time{color:rgba(0,0,0,.52)}
+    .wall-zoom-ctrl .z-pn{
+      background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.1);color:#1b1b1f;
+    }
+    .wall-zoom-ctrl .z-pn:hover{background:rgba(0,0,0,.1)}
+    .wall-zoom-ctrl .z-play{
+      background:#1b1b1f;color:#f7f5f0;box-shadow:0 10px 24px rgba(0,0,0,.22);
+    }
+    .wall-zoom-ctrl .z-play:hover{background:#000}
+  }
   @media (max-width:640px){
     .wall-back{top:calc(14px + env(safe-area-inset-top,0px));left:calc(14px + env(safe-area-inset-left,0px));width:36px;height:36px}
     .wall-card.is-expanded .wall-copy{left:14px;right:16px;bottom:38px;gap:2px}
