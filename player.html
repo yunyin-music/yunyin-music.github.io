@@ -1225,6 +1225,17 @@
     .wall-bar{bottom:env(safe-area-inset-bottom,0px);height:14px}
     .wall-badge{top:8px;left:8px;font-size:9px;padding:3px 6px}
     #foliaWall{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+
+    /* 列表：原来的固定列 36+140+90+56 在手机宽度上会把 1fr 挤成 0，歌名完全看不见。
+       改成「序号 + 歌名(1fr) + 时长 + 更多」，专辑列在手机上隐藏。 */
+    .song-row{grid-template-columns:24px minmax(0,1fr) 42px 26px;gap:8px;padding:9px 8px}
+    .song-row .album{display:none}
+    .song-row .idx{width:auto}
+    .song-row .duration{font-size:11px}
+    .song-row .more{justify-content:center}
+    .song-info .thumb{width:42px;height:42px}
+    .song-info .title{font-size:14px}
+    .song-info .artist{font-size:11px}
   }
   /* 触摸设备没有真 hover：不让点击后的「粘滞悬停」把卡片顶起来 */
   @media (hover:none){
