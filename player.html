@@ -1243,6 +1243,35 @@
     .wall-card:hover::after{animation:none}
   }
 
+  /* ---------- 播放页增强：动作按钮 / 频谱 / 悬浮歌词 / 下滑关闭 ---------- */
+  .pp-acts{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .pp-act{
+    display:flex;align-items:center;justify-content:center;
+    min-width:32px;height:32px;padding:0 9px;border-radius:16px;
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+    color:rgba(255,255,255,.82);font-size:11px;font-weight:700;letter-spacing:.5px;
+    cursor:pointer;transition:.2s cubic-bezier(.4,0,.2,1);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  }
+  .pp-act:hover{background:rgba(255,255,255,.16);color:#fff}
+  .pp-act.on{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#0a0a0b;border-color:transparent}
+  .pp-act:disabled{opacity:.35;cursor:not-allowed}
+  /* 频谱：贴在唱片下方，随音乐跳动 */
+  .pp-spectrum{
+    position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+    width:min(86%,340px);height:56px;pointer-events:none;
+    opacity:0;transition:opacity .5s ease;
+  }
+  .pp-spectrum.live{opacity:.85}
+  /* 下滑关闭手势：拖动时去掉过渡避免打架 */
+  .playpage.dragging{transition:none}
+  .playpage .pp-sheet{transition:transform .32s cubic-bezier(.32,.72,0,1)}
+  .playpage.dragging .pp-sheet{transition:none}
+  @media (max-width:900px){
+    .pp-act{min-width:36px;height:36px}
+    .pp-spectrum{height:44px;bottom:2px}
+  }
+
 </style>
 </head>
 <body>
@@ -1480,6 +1509,15 @@
       <div class="t" id="ppTitle">未在播放</div>
       <div class="a" id="ppArtist">点击左下角唱片，展开沉浸播放页</div>
     </div>
+    <div class="pp-acts">
+      <button class="pp-act" id="ppPip" title="桌面悬浮歌词（需 Chrome/Edge）" aria-label="悬浮歌词">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="14" height="12" rx="2"/><rect x="13" y="10" width="9" height="10" rx="2" fill="currentColor" stroke="none" opacity=".55"/></svg>
+      </button>
+      <button class="pp-act" id="ppPoster" title="生成歌词分享海报" aria-label="歌词海报">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      </button>
+      <button class="pp-act" id="ppEq" title="音效" aria-label="切换音效">EQ</button>
+    </div>
   </div>
   <div class="pp-body">
     <div class="pp-disc-wrap">
@@ -1512,6 +1550,7 @@
           </div>
         </div>
       </div>
+      <canvas class="pp-spectrum" id="ppSpectrum" aria-hidden="true"></canvas>
     </div>
     <div class="pp-right">
       <div class="pp-tabs">
@@ -1845,6 +1884,7 @@ function renderSongs(){
 async function playSong(idx){
   if(idx<0||idx>=songs.length) return;
   currentIdx = idx;
+  try{ navigator.vibrate && navigator.vibrate(8); }catch(_){} // 汽水式切歌触感
   const s = songs[idx];
   pTitle.textContent = s.name;
   pArtist.textContent = s.artist;
@@ -1902,8 +1942,31 @@ function setPlaying(playing){
 
 function togglePlay(){
   if(currentIdx<0 && songs.length){ playSong(0); return; }
-  if(audio.paused) audio.play();
-  else audio.pause();
+  if(audio.paused) fadePlay();
+  else fadePause();
+}
+/* 音量淡入淡出（汽水式）：淡出 180ms 后暂停，开播后渐入 */
+let fadeTimer=0;
+function fadePause(){
+  if(audio.paused) return;
+  clearInterval(fadeTimer);
+  const v0=audio.volume||1; let n=0;
+  fadeTimer=setInterval(()=>{
+    n++; applyVolume(Math.max(0,v0*(1-n/6)));
+    if(n>=6){ clearInterval(fadeTimer); audio.pause(); }
+  },30);
+}
+function fadePlay(){
+  clearInterval(fadeTimer);
+  const v0=Math.max(0.05,(typeof lastVol!=="undefined"&&lastVol)||audio.volume||0.7);
+  audio.volume=0;
+  audio.play().then(()=>{
+    let n=0;
+    fadeTimer=setInterval(()=>{
+      n++; applyVolume(v0*n/6);
+      if(n>=6){ clearInterval(fadeTimer); applyVolume(v0); }
+    },30);
+  }).catch(()=>{ audio.volume=v0; });
 }
 
 function nextSong(){
@@ -2147,6 +2210,7 @@ function updateLyrics(cur){
   lastLrcIdx = idx;
   syncLrcTrack(lrcTrack, idx);
   syncLrcTrack(ppLrcTrack, idx);
+  pipSync(idx);
 }
 function syncLrcTrack(track, idx){
   const lines = track.querySelectorAll(".lrc-line");
@@ -2744,6 +2808,7 @@ async function fetchTimeout(url, ms){
 
 function openPlayPage(){
   playPage.classList.add("open");
+  startSpectrum();
   const s = songs[currentIdx];
   if(s) updatePlayPage(s);
   syncPlayPageState();
@@ -2755,7 +2820,7 @@ function openPlayPage(){
     setTimeout(()=>toast("上滑唱片切下一首 · 长按 2 倍速"),900);
   }
 }
-function closePlayPage(){ playPage.classList.remove("open"); syncParticles(); }
+function closePlayPage(){ playPage.classList.remove("open"); stopSpectrum(); syncParticles(); }
 function syncPlayPageState(){
   playPage.classList.toggle("playing", currentIdx>=0 && !audio.paused);
 }
@@ -3746,6 +3811,262 @@ function setMediaSession(s){
     try{ navigator.mediaSession.setActionHandler("seekto",(d)=>{ if(d && d.seekTime!=null && isFinite(d.seekTime)) audio.currentTime = d.seekTime; }); }catch(e){}
   }catch(e){}
 }
+
+/* ================= 播放页增强：频谱/EQ · 桌面悬浮歌词 · 歌词分享海报 · 手机端体验 ================= */
+
+/* ---------- 1) 频谱 + EQ（WebAudio） ----------
+   音频直链是跨域的：若不支持 CORS，接入 WebAudio 会变静音。
+   所以先用 Range 请求探测，探测失败则优雅降级：频谱显示呼吸动画、EQ 提示不可用。 */
+const ppSpectrum=document.getElementById("ppSpectrum");
+const ppEqBtn=document.getElementById("ppEq");
+let AC=null, srcNode=null, eqLow=null, eqMid=null, eqHigh=null, analyser=null, freqData=null;
+let graphOK=false, graphBusy=false, specRaf=0;
+const EQ_PRESETS=[
+  {name:"标准", g:[0,0,0]},
+  {name:"流行", g:[2,3,4]},
+  {name:"摇滚", g:[5,1,4]},
+  {name:"舞曲", g:[7,1,5]},
+  {name:"人声", g:[-3,4,2]}
+];
+let eqIdx=parseInt(store.get("yy_eq","0"),10)||0;
+if(!(eqIdx>=0&&eqIdx<EQ_PRESETS.length)) eqIdx=0;
+
+async function tryBuildGraph(){
+  if(graphOK||graphBusy) return graphOK;
+  if(!audio.src) return false;
+  graphBusy=true;
+  try{
+    const r=await fetch(audio.src,{method:"GET",headers:{Range:"bytes=0-1"},mode:"cors",cache:"no-store"});
+    if(!r.ok && r.status!==206) throw new Error("cors");
+  }catch(_){ graphBusy=false; return false; }
+  try{
+    AC=new (window.AudioContext||window.webkitAudioContext)();
+    srcNode=AC.createMediaElementSource(audio);
+    eqLow=AC.createBiquadFilter();  eqLow.type="lowshelf";   eqLow.frequency.value=140;
+    eqMid=AC.createBiquadFilter();  eqMid.type="peaking";    eqMid.frequency.value=1400; eqMid.Q.value=0.8;
+    eqHigh=AC.createBiquadFilter(); eqHigh.type="highshelf"; eqHigh.frequency.value=6000;
+    analyser=AC.createAnalyser(); analyser.fftSize=128; analyser.smoothingTimeConstant=.82;
+    srcNode.connect(eqLow); eqLow.connect(eqMid); eqMid.connect(eqHigh);
+    eqHigh.connect(analyser); analyser.connect(AC.destination);
+    freqData=new Uint8Array(analyser.frequencyBinCount);
+    graphOK=true; applyEq();
+  }catch(_){ graphOK=false; }
+  graphBusy=false;
+  return graphOK;
+}
+function applyEq(){
+  if(!graphOK) return;
+  const g=EQ_PRESETS[eqIdx].g;
+  eqLow.gain.value=g[0]; eqMid.gain.value=g[1]; eqHigh.gain.value=g[2];
+  ppEqBtn.textContent = eqIdx ? EQ_PRESETS[eqIdx].name : "EQ";
+  ppEqBtn.classList.toggle("on", eqIdx!==0);
+}
+audio.addEventListener("play",()=>{ if(AC && AC.state==="suspended") AC.resume(); });
+ppEqBtn.addEventListener("click",async()=>{
+  if(!audio.src){ toast("先播放一首歌"); return; }
+  const ok=await tryBuildGraph();
+  if(!ok){ toast("当前音源不支持音效/频谱"); return; }
+  eqIdx=(eqIdx+1)%EQ_PRESETS.length;
+  store.set("yy_eq",String(eqIdx));
+  applyEq();
+  toast("音效："+EQ_PRESETS[eqIdx].name);
+});
+function drawSpectrum(ts){
+  specRaf=requestAnimationFrame(drawSpectrum);
+  if(!playPage.classList.contains("open")) return;
+  const w=ppSpectrum.clientWidth, h=ppSpectrum.clientHeight;
+  if(!w||!h) return;
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  if(ppSpectrum.width!==Math.round(w*dpr)){ ppSpectrum.width=Math.round(w*dpr); ppSpectrum.height=Math.round(h*dpr); }
+  const g=ppSpectrum.getContext("2d");
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,w,h);
+  const N=34, slot=w/N, bw=slot*.6;
+  const grad=g.createLinearGradient(0,h,0,0);
+  grad.addColorStop(0,"rgba(167,139,250,.28)");
+  grad.addColorStop(1,"rgba(196,181,253,.95)");
+  g.fillStyle=grad;
+  let vals;
+  if(graphOK && analyser && !audio.paused){
+    analyser.getByteFrequencyData(freqData);
+    vals=new Array(N);
+    for(let i=0;i<N;i++){
+      const a=Math.floor(Math.pow(i/N,1.7)*(freqData.length-1));
+      const b=Math.max(a+1,Math.floor(Math.pow((i+1)/N,1.7)*(freqData.length-1)));
+      let m=0; for(let k=a;k<b;k++) m=Math.max(m,freqData[k]);
+      vals[i]=m/255;
+    }
+  }else{
+    vals=new Array(N);
+    const t=(ts||0)/850, amp=audio.paused?.1:.55;
+    for(let i=0;i<N;i++)
+      vals[i]=Math.abs(amp*(.25+.2*Math.sin(t+i*.55)+.12*Math.sin(t*2.1+i*1.9)));
+  }
+  for(let i=0;i<N;i++){
+    const bh=Math.max(2,vals[i]*h), x=i*slot+(slot-bw)/2, y=h-bh;
+    g.beginPath();
+    if(g.roundRect) g.roundRect(x,y,bw,bh,bw/2); else g.rect(x,y,bw,bh);
+    g.fill();
+  }
+}
+function startSpectrum(){ ppSpectrum.classList.add("live"); if(!specRaf) specRaf=requestAnimationFrame(drawSpectrum); }
+function stopSpectrum(){ if(specRaf){ cancelAnimationFrame(specRaf); specRaf=0; } ppSpectrum.classList.remove("live"); }
+
+/* ---------- 2) 桌面悬浮歌词（Document Picture-in-Picture，Chrome/Edge） ---------- */
+const ppPipBtn=document.getElementById("ppPip");
+let pipWin=null;
+ppPipBtn.addEventListener("click",async()=>{
+  if(pipWin){ try{pipWin.close()}catch(_){} pipWin=null; ppPipBtn.classList.remove("on"); return; }
+  if(!window.documentPictureInPicture){ toast("悬浮歌词需桌面 Chrome/Edge"); return; }
+  if(currentIdx<0){ toast("先播放一首歌"); return; }
+  try{
+    pipWin=await window.documentPictureInPicture.open({width:430,height:150});
+    const d=pipWin.document;
+    d.documentElement.innerHTML=
+      '<head><title>悬浮歌词</title><style>'+
+      'html,body{margin:0;height:100%;background:#0b0b0d;color:#f4f4f5;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}'+
+      'body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px}'+
+      '.sub{font-size:11px;color:#a1a1aa;letter-spacing:.5px;max-width:95%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
+      '.line{font-size:19px;font-weight:700;color:#c4b5fd;text-align:center;line-height:1.4;max-width:95%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}'+
+      '</style></head>'+
+      '<body><div class="sub" id="psub"></div><div class="line" id="pline">♪ 云音</div></body>';
+    pipWin.addEventListener("pagehide",()=>{ pipWin=null; ppPipBtn.classList.remove("on"); });
+    ppPipBtn.classList.add("on");
+    pipSync(lastLrcIdx);
+  }catch(_){ pipWin=null; toast("打开悬浮歌词失败"); }
+});
+function pipSync(idx){
+  if(!pipWin) return;
+  let d=null;
+  try{ d=pipWin.document; }catch(_){ return; }
+  if(!d||!d.getElementById) return;
+  const s=songs[currentIdx];
+  const sub=d.getElementById("psub"), line=d.getElementById("pline");
+  if(sub) sub.textContent = s ? (s.name+" · "+s.artist) : "";
+  if(line) line.textContent = (idx>=0&&lyrics[idx]) ? lyrics[idx].content : (s? "♪ "+s.name : "♪ 云音");
+}
+
+/* ---------- 3) 歌词分享海报（汽水同款：封面+当前歌词段，系统分享或下载） ---------- */
+const ppPosterBtn=document.getElementById("ppPoster");
+function loadImgCors(url){
+  return new Promise((res,rej)=>{
+    const im=new Image(); im.crossOrigin="anonymous";
+    im.onload=()=>res(im); im.onerror=rej; im.src=url;
+  });
+}
+function rrPath(g,x,y,w,h,r){
+  g.beginPath();
+  if(g.roundRect){ g.roundRect(x,y,w,h,r); return; }
+  g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath();
+}
+function clipTxt(t,n){ t=t||""; return t.length>n? t.slice(0,n-1)+"…" : t; }
+async function makePoster(){
+  if(currentIdx<0){ toast("先播放一首歌"); return; }
+  const s=songs[currentIdx];
+  toast("正在生成海报…");
+  let cover=null;
+  if(s.pic){ try{ cover=await loadImgCors(thumbUrl(s.pic,640)); }catch(_){} }
+  const W=750,H=1000,dpr=2;
+  const c=document.createElement("canvas"); c.width=W*dpr; c.height=H*dpr;
+  const g=c.getContext("2d"); g.scale(dpr,dpr);
+  const FF="-apple-system,'PingFang SC','Microsoft YaHei',sans-serif";
+  /* 背景：封面模糊放大，取不到封面就纯渐变 */
+  g.fillStyle="#0b0b0d"; g.fillRect(0,0,W,H);
+  if(cover){
+    try{ g.filter="blur(46px) brightness(.45) saturate(1.3)"; }catch(_){}
+    const cw=Math.max(W,H*.9);
+    g.drawImage(cover,(W-cw)/2,(H-cw)/2-60,cw,cw);
+    g.filter="none";
+    g.fillStyle="rgba(11,11,13,.62)"; g.fillRect(0,0,W,H);
+  }else{
+    const gr=g.createLinearGradient(0,0,W,H);
+    gr.addColorStop(0,"#1c1533"); gr.addColorStop(1,"#0b0b0d");
+    g.fillStyle=gr; g.fillRect(0,0,W,H);
+  }
+  /* 封面卡 */
+  const CS=360,CX=(W-CS)/2,CY=90;
+  if(cover){
+    g.save(); rrPath(g,CX,CY,CS,CS,22); g.clip();
+    g.drawImage(cover,CX,CY,CS,CS); g.restore();
+    g.strokeStyle="rgba(255,255,255,.14)"; g.lineWidth=1.5; rrPath(g,CX,CY,CS,CS,22); g.stroke();
+  }
+  /* 歌名/歌手 */
+  g.textAlign="center";
+  g.fillStyle="#f4f4f5"; g.font="800 40px "+FF;
+  g.fillText(clipTxt(s.name,16),W/2,CY+CS+64,W-100);
+  g.fillStyle="rgba(244,244,245,.6)"; g.font="400 24px "+FF;
+  g.fillText(clipTxt(s.artist,20),W/2,CY+CS+102,W-120);
+  /* 歌词：当前行上下各两行，当前行高亮 */
+  let yy=CY+CS+176;
+  if(lyrics.length){
+    const ci=Math.max(0,lastLrcIdx);
+    for(let i=ci-2;i<=ci+2;i++){
+      if(!lyrics[i]) continue;
+      const cur=i===ci;
+      g.fillStyle=cur?"#c4b5fd":"rgba(244,244,245,.42)";
+      g.font=(cur?"700 31px ":"400 27px ")+FF;
+      g.fillText(clipTxt(lyrics[i].content,18),W/2,yy,W-120);
+      yy+=cur?58:50;
+    }
+  }else{
+    g.fillStyle="rgba(244,244,245,.5)"; g.font="400 27px "+FF;
+    g.fillText("♪ 好音乐，值得被听见",W/2,yy);
+  }
+  /* 页脚 */
+  g.fillStyle="rgba(244,244,245,.38)"; g.font="400 20px "+FF;
+  g.fillText("云音 · yunyin-music.github.io",W/2,H-46);
+  /* 输出：优先系统分享（手机可直接存图/发微信），否则下载 */
+  c.toBlob(blob=>{
+    if(!blob){ toast("海报生成失败"); return; }
+    const file=new File([blob],(s.name||"云音海报")+".png",{type:"image/png"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:s.name}).catch(()=>{});
+      return;
+    }
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a"); a.href=url; a.download="云音-歌词海报.png";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    toast("海报已保存，可在下载/相册中分享");
+  },"image/png");
+}
+ppPosterBtn.addEventListener("click",makePoster);
+/* 长按播放页歌词区直接出海报（汽水交互） */
+let lrcHold=0;
+ppLrcTrack.addEventListener("touchstart",()=>{ clearTimeout(lrcHold); lrcHold=setTimeout(()=>{lrcHold=0; makePoster();},650); },{passive:true});
+ppLrcTrack.addEventListener("touchmove",()=>clearTimeout(lrcHold),{passive:true});
+ppLrcTrack.addEventListener("touchend",()=>clearTimeout(lrcHold));
+
+/* ---------- 4) 手机端体验：耳机拔出暂停 · 播放页下滑关闭（切歌震动在 playSong 里） ---------- */
+document.addEventListener("headphonejackinterrupted",()=>{
+  if(!audio.paused){ audio.pause(); toast("耳机已拔出，自动暂停"); }
+});
+(function(){
+  const head=document.querySelector(".pp-head");
+  if(!head) return;
+  let sy=0,dy=0,on=false;
+  head.addEventListener("touchstart",e=>{
+    if(e.target.closest(".pp-act")) return;
+    sy=e.touches[0].clientY; dy=0; on=true;
+    playPage.classList.add("dragging");
+  },{passive:true});
+  head.addEventListener("touchmove",e=>{
+    if(!on) return;
+    dy=Math.max(0,e.touches[0].clientY-sy);
+    if(dy>0) playPage.style.transform="translateY("+dy+"px)";
+  },{passive:true});
+  const end=()=>{
+    if(!on) return; on=false;
+    playPage.classList.remove("dragging");
+    if(dy>110){
+      closePlayPage();
+      setTimeout(()=>{ playPage.style.transform=""; },560);
+    }else playPage.style.transform="";
+  };
+  head.addEventListener("touchend",end);
+  head.addEventListener("touchcancel",end);
+})();
 
 /* ---------- PWA ---------- */
 if('serviceWorker' in navigator && location.protocol==='https:'){
