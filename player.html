@@ -1256,20 +1256,20 @@
   .pp-act:hover{background:rgba(255,255,255,.16);color:#fff}
   .pp-act.on{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#0a0a0b;border-color:transparent}
   .pp-act:disabled{opacity:.35;cursor:not-allowed}
-  /* 频谱：贴在唱片下方，随音乐跳动 */
+  /* 频谱：贴在唱片下方，镜像波形随音乐律动 */
   .pp-spectrum{
     position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
-    width:min(86%,340px);height:56px;pointer-events:none;
+    width:min(86%,340px);height:64px;pointer-events:none;
     opacity:0;transition:opacity .5s ease;
   }
-  .pp-spectrum.live{opacity:.85}
+  .pp-spectrum.live{opacity:.9}
   /* 下滑关闭手势：拖动时去掉过渡避免打架 */
   .playpage.dragging{transition:none}
   .playpage .pp-sheet{transition:transform .32s cubic-bezier(.32,.72,0,1)}
   .playpage.dragging .pp-sheet{transition:none}
   @media (max-width:900px){
     .pp-act{min-width:36px;height:36px}
-    .pp-spectrum{height:44px;bottom:2px}
+    .pp-spectrum{height:52px;bottom:2px}
   }
 
 </style>
@@ -3871,6 +3871,7 @@ ppEqBtn.addEventListener("click",async()=>{
   applyEq();
   toast("音效："+EQ_PRESETS[eqIdx].name);
 });
+let wavePrev=null;
 function drawSpectrum(ts){
   specRaf=requestAnimationFrame(drawSpectrum);
   if(!playPage.classList.contains("open")) return;
@@ -3881,33 +3882,56 @@ function drawSpectrum(ts){
   const g=ppSpectrum.getContext("2d");
   g.setTransform(dpr,0,0,dpr,0,0);
   g.clearRect(0,0,w,h);
-  const N=34, slot=w/N, bw=slot*.6;
-  const grad=g.createLinearGradient(0,h,0,0);
-  grad.addColorStop(0,"rgba(167,139,250,.28)");
-  grad.addColorStop(1,"rgba(196,181,253,.95)");
-  g.fillStyle=grad;
+  const N=48, mid=h/2, maxA=mid-4;
   let vals;
   if(graphOK && analyser && !audio.paused){
     analyser.getByteFrequencyData(freqData);
-    vals=new Array(N);
-    for(let i=0;i<N;i++){
+    vals=new Array(N+1);
+    for(let i=0;i<=N;i++){
       const a=Math.floor(Math.pow(i/N,1.7)*(freqData.length-1));
       const b=Math.max(a+1,Math.floor(Math.pow((i+1)/N,1.7)*(freqData.length-1)));
       let m=0; for(let k=a;k<b;k++) m=Math.max(m,freqData[k]);
       vals[i]=m/255;
     }
   }else{
-    vals=new Array(N);
-    const t=(ts||0)/850, amp=audio.paused?.1:.55;
-    for(let i=0;i<N;i++)
-      vals[i]=Math.abs(amp*(.25+.2*Math.sin(t+i*.55)+.12*Math.sin(t*2.1+i*1.9)));
+    vals=new Array(N+1);
+    const t=(ts||0)/850, amp=audio.paused?.12:.5;
+    for(let i=0;i<=N;i++)
+      vals[i]=Math.abs(amp*(.25+.2*Math.sin(t+i*.5)+.12*Math.sin(t*2.1+i*1.7)));
   }
+  /* 时域平滑 + 两端收口：让波形像透镜一样在两侧闭合 */
+  if(!wavePrev||wavePrev.length!==N+1) wavePrev=vals.slice();
+  const env=Math.PI/N;
+  for(let i=0;i<=N;i++){
+    wavePrev[i]=wavePrev[i]*.55+vals[i]*.45;
+    vals[i]=wavePrev[i]*Math.pow(Math.sin(i*env),.5);
+  }
+  const px=i=>i*(w/N);
+  /* 上下镜像的平滑闭合曲线 */
+  g.beginPath();
+  g.moveTo(0,mid);
   for(let i=0;i<N;i++){
-    const bh=Math.max(2,vals[i]*h), x=i*slot+(slot-bw)/2, y=h-bh;
-    g.beginPath();
-    if(g.roundRect) g.roundRect(x,y,bw,bh,bw/2); else g.rect(x,y,bw,bh);
-    g.fill();
+    const x0=px(i), a0=vals[i], x1=px(i+1), a1=vals[i+1];
+    g.quadraticCurveTo(x0,mid-a0,(x0+x1)/2,mid-(a0+a1)/2);
   }
+  g.quadraticCurveTo(px(N),mid-vals[N],w,mid);
+  for(let i=N;i>0;i--){
+    const x0=px(i), a0=vals[i], x1=px(i-1), a1=vals[i-1];
+    g.quadraticCurveTo(x0,mid+a0,(x0+x1)/2,mid+(a0+a1)/2);
+  }
+  g.quadraticCurveTo(0,mid+vals[0],0,mid);
+  g.closePath();
+  const grad=g.createLinearGradient(0,mid-maxA,0,mid+maxA);
+  grad.addColorStop(0,"rgba(196,181,253,.95)");
+  grad.addColorStop(.5,"rgba(167,139,250,.6)");
+  grad.addColorStop(1,"rgba(196,181,253,.95)");
+  g.save();
+  g.shadowColor="rgba(167,139,250,.45)"; g.shadowBlur=10;
+  g.fillStyle=grad; g.fill();
+  g.restore();
+  /* 中线高光：增加精致感 */
+  g.strokeStyle="rgba(233,226,255,.35)"; g.lineWidth=1;
+  g.beginPath(); g.moveTo(2,mid); g.lineTo(w-2,mid); g.stroke();
 }
 function startSpectrum(){ ppSpectrum.classList.add("live"); if(!specRaf) specRaf=requestAnimationFrame(drawSpectrum); }
 function stopSpectrum(){ if(specRaf){ cancelAnimationFrame(specRaf); specRaf=0; } ppSpectrum.classList.remove("live"); }
@@ -3984,12 +4008,16 @@ async function makePoster(){
     gr.addColorStop(0,"#1c1533"); gr.addColorStop(1,"#0b0b0d");
     g.fillStyle=gr; g.fillRect(0,0,W,H);
   }
-  /* 封面卡 */
+  /* 封面卡：大圆角 + 悬浮阴影 */
   const CS=360,CX=(W-CS)/2,CY=90;
   if(cover){
-    g.save(); rrPath(g,CX,CY,CS,CS,22); g.clip();
+    g.save();
+    g.shadowColor="rgba(0,0,0,.55)"; g.shadowBlur=48; g.shadowOffsetY=20;
+    rrPath(g,CX,CY,CS,CS,32); g.fillStyle="#0b0b0d"; g.fill();
+    g.restore();
+    g.save(); rrPath(g,CX,CY,CS,CS,32); g.clip();
     g.drawImage(cover,CX,CY,CS,CS); g.restore();
-    g.strokeStyle="rgba(255,255,255,.14)"; g.lineWidth=1.5; rrPath(g,CX,CY,CS,CS,22); g.stroke();
+    g.strokeStyle="rgba(255,255,255,.16)"; g.lineWidth=1.5; rrPath(g,CX,CY,CS,CS,32); g.stroke();
   }
   /* 歌名/歌手 */
   g.textAlign="center";
@@ -3997,8 +4025,25 @@ async function makePoster(){
   g.fillText(clipTxt(s.name,16),W/2,CY+CS+64,W-100);
   g.fillStyle="rgba(244,244,245,.6)"; g.font="400 24px "+FF;
   g.fillText(clipTxt(s.artist,20),W/2,CY+CS+102,W-120);
+  /* 播放进度条：还原真实播放状态 */
+  const PW=460,PX=(W-PW)/2,PY=CY+CS+148;
+  const dur=audio.duration>0?audio.duration:(s.dur/1000||0);
+  const cur=Math.min(audio.currentTime||0,dur);
+  const ratio=dur>0?Math.min(1,cur/dur):0;
+  g.fillStyle="rgba(244,244,245,.16)"; rrPath(g,PX,PY,PW,8,4); g.fill();
+  if(ratio>0){
+    const pg=g.createLinearGradient(PX,0,PX+PW,0);
+    pg.addColorStop(0,"#a78bfa"); pg.addColorStop(1,"#c4b5fd");
+    g.fillStyle=pg; rrPath(g,PX,PY,Math.max(16,PW*ratio),8,4); g.fill();
+  }
+  g.beginPath(); g.arc(PX+PW*ratio,PY+4,9,0,Math.PI*2);
+  g.fillStyle="#e9e2ff"; g.fill();
+  g.fillStyle="rgba(244,244,245,.55)"; g.font="400 20px "+FF;
+  g.textAlign="left";  g.fillText(fmt(cur),PX,PY+42);
+  g.textAlign="right"; g.fillText(fmt(dur),PX+PW,PY+42);
+  g.textAlign="center";
   /* 歌词：当前行上下各两行，当前行高亮 */
-  let yy=CY+CS+176;
+  let yy=CY+CS+236;
   if(lyrics.length){
     const ci=Math.max(0,lastLrcIdx);
     for(let i=ci-2;i<=ci+2;i++){
