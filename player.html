@@ -3939,17 +3939,22 @@ function stopSpectrum(){ if(specRaf){ cancelAnimationFrame(specRaf); specRaf=0; 
 /* ---------- 2) 桌面悬浮歌词（Document Picture-in-Picture，Chrome/Edge） ---------- */
 const ppPipBtn=document.getElementById("ppPip");
 let pipWin=null;
-const PIP_HTML=
-  '<head><title>悬浮歌词</title><style>'+
-  'html,body{margin:0;height:100%;background:#0b0b0d;color:#f4f4f5;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}'+
-  'body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px}'+
-  '.sub{font-size:11px;color:#a1a1aa;letter-spacing:.5px;max-width:95%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
-  '.line{font-size:19px;font-weight:700;color:#c4b5fd;text-align:center;line-height:1.4;max-width:95%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}'+
+/* 汽水风格：桌面 PiP 窗全透明，只留带阴影描边的歌词文字；普通小窗无法透明，保留深色底 */
+function pipHtml(transparent){
+  return '<head><title>悬浮歌词</title><style>'+
+  'html,body{margin:0;height:100%;background:'+(transparent?"transparent":"#0b0b0d")+
+  ';color:#f4f4f5;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}'+
+  'body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:'+(transparent?"5px":"8px")+';padding:12px}'+
+  '.sub{font-size:11px;letter-spacing:.5px;max-width:95%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:'+
+  (transparent?"rgba(255,255,255,.72)":"#a1a1aa")+';text-shadow:0 1px 6px rgba(0,0,0,.85)}'+
+  '.line{font-size:20px;font-weight:800;color:#fff;text-align:center;line-height:1.4;max-width:95%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;'+
+  (transparent?"text-shadow:0 0 3px rgba(0,0,0,.9),0 2px 14px rgba(0,0,0,.85)":"color:#c4b5fd")+'}'+
   '</style></head>'+
   '<body><div class="sub" id="psub"></div><div class="line" id="pline">♪ 云音</div></body>';
-function pipSetup(w){
+}
+function pipSetup(w, transparent){
   pipWin=w;
-  w.document.documentElement.innerHTML=PIP_HTML;
+  w.document.documentElement.innerHTML=pipHtml(transparent);
   w.addEventListener("pagehide",()=>{ pipWin=null; ppPipBtn.classList.remove("on"); });
   ppPipBtn.classList.add("on");
   pipSync(lastLrcIdx);
@@ -3959,7 +3964,7 @@ ppPipBtn.addEventListener("click",async()=>{
   if(currentIdx<0){ toast("先播放一首歌"); return; }
   const dpi=window.documentPictureInPicture;
   if(dpi && typeof dpi.open==="function"){
-    try{ pipSetup(await dpi.open({width:430,height:150})); return; }
+    try{ pipSetup(await dpi.open({width:430,height:150}), true); return; }
     catch(e){ console.warn("DocPiP fail:",e); toast("桌面悬浮窗失败（"+((e&&e.name)||e)+"），改用普通小窗"); }
   }
   /* 兜底：普通弹出小窗，所有桌面浏览器可用，歌词同样实时同步 */
@@ -3967,7 +3972,7 @@ ppPipBtn.addEventListener("click",async()=>{
   if(!fine){ toast("悬浮歌词需桌面 Chrome/Edge/Firefox"); return; }
   const w=window.open("","yy_pip","width=430,height=170,left=90,top=90");
   if(!w){ toast("小窗被浏览器拦截，请允许本站弹出窗口后重试"); return; }
-  pipSetup(w);
+  pipSetup(w, false);
 });
 function pipSync(idx){
   if(!pipWin) return;
