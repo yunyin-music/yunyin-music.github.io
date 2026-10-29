@@ -20,7 +20,7 @@
 <meta name="twitter:title" content="云音播放器 - 免费在线听歌" />
 <meta name="twitter:description" content="六大实时榜单 · 黑胶唱片播放页 · 歌词同步 · 热门评论 · 私人FM" />
 <meta name="twitter:image" content="https://yunyin-music.github.io/icon-512.png" />
-<meta name="theme-color" content="#09090b" />
+<meta name="theme-color" content="#f2efe9" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
@@ -1385,6 +1385,176 @@
   .pl-tile .em svg{width:23px;height:23px}
   .empty .i{margin:0 auto 12px}
 
+  /* ================= 主题 D · 白昼纸感 =================
+     米白纸底 #f2efe9 · 墨黑文字 #151411 · 朱砂点缀 #c1440e
+     只重定义表面与色彩，不改动任何布局与交互逻辑 */
+  :root{
+    color-scheme:light;
+    --bg-0:#f2efe9;
+    --bg-1:#f7f5f0;
+    --bg-2:#eae5db;
+    --glass:rgba(255,255,255,.62);
+    --glass-2:rgba(28,25,20,.045);
+    --border:rgba(28,25,20,.10);
+    --border-strong:rgba(28,25,20,.16);
+    --text:#151411;
+    --text-2:#5e584e;
+    --text-3:#8b8478;
+    --accent:#c1440e;
+    --accent-2:#d96a2f;
+    --accent-glow:rgba(193,68,14,.18);
+    --page-rgb:193,68,14;
+    --danger:#b3402c;
+    --shadow:0 20px 48px -26px rgba(60,50,30,.55);
+    --shadow-soft:0 10px 26px -16px rgba(60,50,30,.45);
+  }
+  body{background:var(--bg-0);letter-spacing:.2px}
+  .bg-mesh{
+    background:
+      radial-gradient(900px 640px at 12% 4%, rgba(233,180,140,.30), transparent 62%),
+      radial-gradient(760px 600px at 90% 10%, rgba(193,68,14,.06), transparent 64%),
+      radial-gradient(900px 700px at 68% 98%, rgba(122,132,110,.10), transparent 66%),
+      linear-gradient(170deg,#f7f4ee 0%,#f2efe9 46%,#ebe6dc 100%);
+  }
+  .bg-noise{opacity:.055;mix-blend-mode:multiply}
+  .page-ambient{opacity:.55;mix-blend-mode:multiply}
+
+  /* 面板：白纸 + 细砂线 + 暖投影 */
+  .sidebar,.main{
+    background:rgba(252,250,246,.72);
+    border:1px solid #e4dfd4;
+    box-shadow:0 26px 58px -34px rgba(60,50,30,.5),inset 0 1px 0 rgba(255,255,255,.92);
+  }
+  .sidebar::-webkit-scrollbar-thumb,.charts::-webkit-scrollbar-thumb,
+  .song-list::-webkit-scrollbar-thumb,.q-list::-webkit-scrollbar-thumb{
+    background:rgba(28,25,20,.12);
+  }
+  .song-list::-webkit-scrollbar-thumb:hover{background:rgba(28,25,20,.2)}
+
+  /* 榜单头部 */
+  .chart-header{background:linear-gradient(180deg,rgba(251,243,238,.55),transparent)}
+  .chart-header::after{background:linear-gradient(90deg,transparent,#e2ddd3 20%,#e2ddd3 80%,transparent)}
+  .chart-cover{
+    background:linear-gradient(135deg,#efe9df,#e6dfd3);
+    box-shadow:0 18px 38px -22px rgba(60,50,30,.55),0 0 0 1px #ded8cc;
+  }
+  @supports ((-webkit-background-clip:text) or (background-clip:text)){
+    .chart-meta h2{
+      background:none;-webkit-background-clip:border-box;background-clip:border-box;
+      -webkit-text-fill-color:currentColor;color:#151411;
+    }
+  }
+  .chart-meta .tag{color:#c1440e;background:#fbf3ee;box-shadow:inset 0 0 0 1px rgba(193,68,14,.18)}
+  .btn-play-all{
+    background:#1b1a17;color:#f7f5f0;
+    box-shadow:0 12px 26px -14px rgba(60,50,30,.7);
+  }
+  .btn-play-all:hover{background:#241f19;box-shadow:0 16px 32px -14px rgba(60,50,30,.8)}
+  .viewToggle,.btn-clear{color:var(--text-2)}
+  .btn-clear:hover{color:var(--accent);border-color:var(--accent)}
+  .brand h1{font-family:"Songti SC","Source Han Serif SC",Georgia,serif;font-weight:600;letter-spacing:2.5px}
+  .brand small{letter-spacing:2px;color:#8b8478}
+  .chart-meta h2{font-family:"Songti SC","Source Han Serif SC",Georgia,serif;font-weight:600;letter-spacing:1.5px}
+
+  /* 侧栏条目 */
+  .chart-item{color:#5e584e}
+  .chart-item:hover{background:#efeae0;color:#151411}
+  .chart-item.active{background:linear-gradient(90deg,#fbf3ee,rgba(246,241,232,.4));color:#151411}
+  .chart-item.active::before{background:#c1440e;box-shadow:none}
+  .chart-item .ico{background:#ece7dd}
+  .chart-item.active .ico{background:#1b1a17;color:#f7f5f0}
+  .sidebar-foot{border-top:1px solid #e6e0d5}
+  .search input{background:#fff;border:1px solid #e2ddd3;color:#151411}
+  .search input:focus{background:#fff;border-color:#c1440e;box-shadow:0 0 0 3px rgba(193,68,14,.13)}
+
+  /* 歌曲列表 */
+  .song-row{color:#5e584e}
+  .song-row:hover{background:#efeae0;color:#151411;border-color:#e2ddd3}
+  .song-row.playing{
+    background:linear-gradient(90deg,#fbf3ee,rgba(251,243,238,.2));
+    color:#151411;border-color:rgba(193,68,14,.2);
+  }
+  .song-list:not(.folia) .song-row.playing::before{background:#c1440e;box-shadow:none}
+  .song-info .thumb{box-shadow:0 6px 14px -6px rgba(60,50,30,.55),0 0 0 1px #ded8cc}
+  .song-row .idx.top{color:#c1440e}
+  .loading-more,.song-list .loader p{color:var(--text-3)}
+
+  /* 播放条 */
+  .player{
+    background:rgba(251,249,245,.9);
+    border:1px solid #e2ddd3;
+    box-shadow:0 18px 44px -28px rgba(60,50,30,.65),inset 0 1px 0 #fff;
+  }
+  .ctrl-btn{color:#5e584e}
+  .ctrl-btn:hover{color:#151411}
+  .ctrl-btn.play{
+    background:#1b1a17;color:#f7f5f0;
+    box-shadow:0 10px 22px -10px rgba(60,50,30,.75);
+  }
+  .ctrl-btn.play:hover{background:#241f19;color:#fff;box-shadow:0 12px 26px -10px rgba(60,50,30,.85)}
+  .bar{background:#e8e2d8}
+  .bar .fill{background:#c1440e;box-shadow:none}
+  .bar .thumb{background:#1b1a17;box-shadow:0 2px 8px rgba(60,50,30,.45)}
+  .bar:hover .fill{box-shadow:none}
+  .vol-btn,.mode-btn,.lyrics-toggle{color:#5e584e}
+  .vol-btn:hover,.mode-btn:hover,.lyrics-toggle:hover{color:#151411}
+  .vinyl{border-color:#17140f;box-shadow:0 6px 16px -8px rgba(60,50,30,.7),0 0 0 1px rgba(0,0,0,.35)}
+  .p-info .a{color:#8b8478}
+
+  /* 悬浮面板：歌词 / 队列 */
+  .lyrics-panel,.queue-panel{
+    background:rgba(251,249,245,.95);
+    border:1px solid #e2ddd3;
+    box-shadow:0 34px 66px -34px rgba(60,50,30,.55),inset 0 1px 0 #fff;
+  }
+  .lyrics-body::before{background:linear-gradient(180deg,#fbf9f5,transparent)}
+  .lyrics-body::after{background:linear-gradient(0deg,#fbf9f5,transparent)}
+  .lrc-line.active{color:#151411;text-shadow:none}
+  .q-tools select{background:#fff;border:1px solid #e2ddd3;color:#151411}
+  .q-clear{color:#8b8478;border-color:#e2ddd3}
+  .q-row:hover{background:#efeae0}
+  .pl-tile{
+    background:#f6f1e6 !important;color:#151411;text-shadow:none;
+    border:1px solid #e4dfd4;
+    box-shadow:inset 0 1px 0 #fff,0 10px 22px -18px rgba(60,50,30,.7);
+  }
+  .pl-tile:hover{background:#fffdf8 !important;border-color:#d9ccb7}
+  .pl-tile .em{color:#c1440e}
+
+  /* 播放详情页 */
+  .playpage{background:#f2efe9;--glow1:233,180,140;--glow2:193,68,14}
+  .pp-bg::before{
+    background:
+      radial-gradient(42% 36% at 22% 28%, rgba(var(--glow1),.16), transparent 70%),
+      radial-gradient(48% 42% at 78% 72%, rgba(var(--glow2),.12), transparent 70%);
+  }
+  .pp-bg img{filter:blur(90px) saturate(.9) brightness(1.25);opacity:.5}
+  .pp-bg::after{background:linear-gradient(180deg,rgba(246,243,236,.7),rgba(242,239,233,.94))}
+  .pp-head{border-bottom:1px solid #e6e0d5}
+  .pp-collapse{background:rgba(28,25,20,.06);color:#5e584e}
+  .pp-collapse:hover{background:rgba(28,25,20,.1);color:#151411}
+  .pp-tabs{border-bottom:1px solid #e6e0d5}
+  .pp-tab.active::after{box-shadow:none}
+  .pp-disc{box-shadow:0 26px 56px -30px rgba(60,50,30,.8),0 0 0 1px rgba(0,0,0,.25)}
+  .pp-cover{box-shadow:0 0 0 5px #cfc8ba,0 0 0 6px rgba(255,255,255,.5),0 10px 26px -10px rgba(60,50,30,.6)}
+  .pp-lyrics .lrc-line{color:rgba(21,20,17,.42)}
+  .pp-lyrics .lrc-line.active{color:#151411;text-shadow:none}
+  .pp-cmt{border-bottom:1px solid #ece6db}
+  .pp-cmt-scroll::-webkit-scrollbar-thumb{background:rgba(28,25,20,.15)}
+  .pp-cmt .ava{box-shadow:0 0 0 1px #ded8cc}
+
+  /* 移动端顶栏与抽屉 */
+  .m-top{background:rgba(248,245,239,.9);border-bottom:1px solid #e6e0d5}
+  .m-mask{background:rgba(40,32,20,.4)}
+  @media (max-width:900px){
+    .sidebar{box-shadow:24px 0 50px -24px rgba(60,50,30,.6);background:#f8f5ef}
+  }
+
+  /* 弹层与骨架 */
+  .toast{background:#1b1a17;color:#f7f5f0;box-shadow:0 12px 30px -14px rgba(60,50,30,.8)}
+  .spinner{border-color:#e8e2d8;border-top-color:#c1440e}
+  .btn-retry{border-color:#c1440e;color:#c1440e}
+
 </style>
 </head>
 <body>
@@ -1953,7 +2123,7 @@ async function loadChart(idx){
   chartDesc.textContent = c.desc;
   chartTag.textContent = "REAL-TIME";
   chartCover.innerHTML = iconSvg(c.icon,38);
-  chartCover.style.background = "linear-gradient(135deg,#27272a,#18181b)";
+  chartCover.style.background = "linear-gradient(135deg,#efe9df,#e1d9cc)";
 
   // 榜单本地缓存：命中立即渲染（首开速度 = 0 网络），过期/缺失才走网络
   const ck = "yy_chartcache_"+idx;
@@ -2616,7 +2786,7 @@ function showFavs(){
   chartDesc.textContent = favs.length ? `共 ${favs.length} 首，红心标记的歌曲都在这里` : "还没有收藏，点击歌曲右侧的红心试试";
   chartTag.textContent = "LOCAL";
   chartCover.innerHTML = iconSvg('i-heart',38);
-  chartCover.style.background = "linear-gradient(135deg,#a78bfa,#7c3aed)";
+  chartCover.style.background = "linear-gradient(135deg,#f7e2d5,#e0a07a)";
   songs = favs.slice();
   renderSongs();
   chartTag.style.display = songs.length ? "" : "none";
@@ -2629,7 +2799,7 @@ function showHistory(){
   chartDesc.textContent = history.length ? `共 ${history.length} 条播放记录` : "暂无播放记录";
   chartTag.textContent = "LOCAL";
   chartCover.innerHTML = iconSvg('i-clock',38);
-  chartCover.style.background = "linear-gradient(135deg,#4b6cb7,#182848)";
+  chartCover.style.background = "linear-gradient(135deg,#e8ded0,#cdbfa9)";
   songs = history.slice();
   renderSongs();
   chartTag.style.display = songs.length ? "" : "none";
@@ -2663,7 +2833,7 @@ function startFM(){
   chartDesc.textContent = "从全部榜单随机为你推歌，随心畅听";
   chartTag.textContent = "RANDOM";
   chartCover.innerHTML = iconSvg(FM_ICONS[Math.floor(Math.random()*FM_ICONS.length)],38);
-  chartCover.style.background = "linear-gradient(135deg,#7f5af0,#2cb67d)";
+  chartCover.style.background = "linear-gradient(135deg,#efe4d3,#d8b894)";
   // 合并所有榜单歌曲去重作为FM曲库
   fmPool = [];
   const seen = new Set();
@@ -2734,7 +2904,7 @@ async function loadCustomPlaylist(pid, name, fromImport){
   chartDesc.textContent = "自定义导入的网易云歌单";
   chartTag.textContent = "PLAYLIST";
   chartCover.innerHTML = iconSvg('i-disc',38);
-  chartCover.style.background = "linear-gradient(135deg,#a78bfa,#7c3aed)";
+  chartCover.style.background = "linear-gradient(135deg,#f7e2d5,#e0a07a)";
   songListEl.innerHTML = `<div class="loader"><div class="spinner"></div><p>加载歌单中...</p></div>`;
   try{
     const list = await fetchPlaylist(pid);
@@ -4443,7 +4613,7 @@ async function openDaily(){
   chartTag.textContent = "DAILY";
   chartTag.style.display = "";
   chartCover.innerHTML = iconSvg('i-sparkle',38);
-  chartCover.style.background = "linear-gradient(135deg,#a78bfa,#7c3aed)";
+  chartCover.style.background = "linear-gradient(135deg,#f7e2d5,#e0a07a)";
   songs = daily.slice();
   renderSongs();
 }
