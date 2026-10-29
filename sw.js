@@ -1,9 +1,11 @@
 /* 云音播放器 Service Worker：应用壳缓存（cache-first），API 请求直连 */
-const CACHE = "yunyin-v30";
+const CACHE = "yunyin-v31";
 const SHELL = [
   "./",
   "./index.html",
   "./player.html",
+  "./player.css",
+  "./player.js",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",
@@ -29,7 +31,8 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   // 音乐 API / 歌词 / 封面 / 音频：直连，不缓存
   if (url.hostname.includes("injahow") || url.hostname.includes("163.com") ||
-      url.hostname.includes("126.net") || url.pathname.includes("chart-fallback") ||
+      url.hostname.includes("126.net") || url.hostname.includes("vkeys.cn") ||
+      url.pathname.includes("chart-fallback") ||
       url.hostname.includes("cors.eu.org") || url.hostname.includes("allorigins") ||
       url.hostname.includes("codetabs")) {
     return;
