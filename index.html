@@ -13,11 +13,12 @@
 <meta name="robots" content="index, follow" />
 <meta name="theme-color" content="#09090b" />
 <link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
 <link rel="apple-touch-icon" href="icon-192.png" />
 <!-- 预取播放器页面 + 预热 API 连接，点击进入后秒开 -->
 <link rel="prefetch" href="player.html" as="document" />
-<link rel="preconnect" href="https://music-api.gdstudio.xyz" crossorigin />
+<link rel="preconnect" href="https://api.injahow.cn" crossorigin />
 <meta name="language" content="zh-CN" />
 <link rel="canonical" href="./" />
 <!-- Open Graph -->
@@ -86,13 +87,12 @@
   }
   @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
   .logo{
-    width:82px;height:82px;border-radius:22px;margin:0 auto 26px;
-    background:linear-gradient(135deg,#a78bfa,#c4b5fd);
-    display:flex;align-items:center;justify-content:center;
-    font-size:40px;color:#0a0a0b;
-    box-shadow:0 12px 36px rgba(167,139,250,.4),inset 0 1px 0 rgba(255,255,255,.3);
+    width:82px;height:82px;border-radius:19px;margin:0 auto 26px;
+    overflow:hidden;
+    box-shadow:0 12px 36px rgba(167,139,250,.4);
     animation:float 3.5s ease-in-out infinite;
   }
+  .logo svg{display:block;width:100%;height:100%}
   @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
   h1{font-size:34px;font-weight:800;letter-spacing:3px;margin-bottom:8px}
   h1 span{color:#a78bfa}
@@ -142,7 +142,22 @@
 <div class="vinyl-deco right"></div>
 
 <div class="card">
-  <div class="logo">♪</div>
+  <div class="logo">
+    <svg viewBox="0 0 512 512" role="img" aria-label="云音 Logo">
+      <defs>
+        <radialGradient id="yyLgBg2" cx=".5" cy=".42" r=".78"><stop offset="0" stop-color="#1b1a21"/><stop offset="1" stop-color="#09090b"/></radialGradient>
+        <radialGradient id="yyLgHalo2" cx=".5" cy=".52" r=".58"><stop offset="0" stop-color="#a78bfa" stop-opacity=".40"/><stop offset=".65" stop-color="#7c3aed" stop-opacity=".13"/><stop offset="1" stop-color="#7c3aed" stop-opacity="0"/></radialGradient>
+        <linearGradient id="yyLgCloud2" x1=".15" y1="0" x2=".75" y2="1"><stop offset="0" stop-color="#efeaff"/><stop offset=".34" stop-color="#c4b5fd"/><stop offset=".72" stop-color="#a78bfa"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
+        <mask id="yyLgMask2">
+          <g fill="#fff"><circle cx="168" cy="274" r="86"/><circle cx="256" cy="228" r="104"/><circle cx="346" cy="274" r="80"/><rect x="112" y="272" width="290" height="88" rx="44"/></g>
+          <g fill="#000"><circle cx="216" cy="302" r="31"/><rect x="234" y="197" width="16" height="110" rx="8"/><path d="M250 200 L289 234 L250 258 Z"/></g>
+        </mask>
+      </defs>
+      <rect width="512" height="512" rx="115" fill="url(#yyLgBg2)"/>
+      <rect width="512" height="512" rx="115" fill="url(#yyLgHalo2)"/>
+      <g mask="url(#yyLgMask2)"><rect width="512" height="512" fill="url(#yyLgCloud2)"/><ellipse cx="205" cy="190" rx="146" ry="86" fill="#ffffff" opacity=".16"/></g>
+    </svg>
+  </div>
   <h1>云<span>音</span></h1>
   <p class="sub">CLOUD MUSIC PLAYER</p>
   <div class="tags">
