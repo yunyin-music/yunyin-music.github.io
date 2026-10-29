@@ -1308,6 +1308,60 @@
     .pp-spectrum{height:52px;bottom:2px}
   }
 
+  /* ---------- 播放队列增强 + 每日推荐（新增样式） ---------- */
+  /* 桌面：右侧全高抽屉；移动端 ≤640 改为底部 sheet（见文末 media query） */
+  .queue-panel{
+    top:0;right:0;bottom:auto;left:auto;width:360px;height:100%;max-height:none;
+    border:none;border-left:1px solid var(--border);border-radius:0;
+    background:rgba(18,18,20,.82);
+    backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);
+    transform:translateX(105%);
+    box-shadow:-24px 0 60px rgba(0,0,0,.55);
+    padding-top:env(safe-area-inset-top,0px);
+  }
+  .queue-panel.open{transform:none}
+  .q-mask{
+    position:fixed;inset:0;z-index:49;background:rgba(0,0,0,.42);
+    opacity:0;pointer-events:none;transition:opacity .35s cubic-bezier(.4,0,.2,1);
+    backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  }
+  .q-mask.show{opacity:1;pointer-events:auto}
+  .q-head{flex-shrink:0}
+  .q-row .q-cover{
+    width:32px;height:32px;border-radius:8px;flex-shrink:0;overflow:hidden;
+    background:var(--bg-2);box-shadow:0 0 0 1px var(--border);
+  }
+  .q-row .q-cover img{width:100%;height:100%;object-fit:cover;display:block}
+  .q-row .qi{width:20px;display:flex;align-items:center;justify-content:center}
+  .q-row .playing-anim{display:none;align-items:flex-end;gap:2px;height:12px}
+  .q-row.playing .playing-anim{display:inline-flex}
+  .q-row .playing-anim span{width:3px;background:var(--accent);border-radius:2px;animation:eq 1s ease-in-out infinite}
+  .q-row .playing-anim span:nth-child(1){height:60%;animation-delay:-.4s}
+  .q-row .playing-anim span:nth-child(2){height:100%;animation-delay:-.2s}
+  .q-row .playing-anim span:nth-child(3){height:40%}
+  .q-row .qbtns{display:flex;gap:2px;align-items:center;flex-shrink:0}
+  .q-row .q-next,.q-row .qx{
+    background:none;border:none;color:var(--text-3);cursor:pointer;
+    font-size:13px;padding:2px 4px;border-radius:4px;flex-shrink:0;
+    opacity:.45;transition:.15s;
+  }
+  .q-row .q-next:hover{color:var(--accent);opacity:1}
+  .q-row .qx:hover{color:var(--danger);opacity:1}
+  .q-row.playing .q-next,.q-row.playing .qx{opacity:.8}
+  @media (hover:none){
+    .q-row .q-next,.q-row .qx{opacity:1}
+  }
+  @media (max-width:640px){
+    .queue-panel{
+      top:auto;bottom:0;left:0;right:0;width:auto;height:70vh;max-height:none;
+      border-left:none;border-top:1px solid var(--border);
+      border-radius:22px 22px 0 0;transform:translateY(105%);
+      padding-top:0;padding-bottom:env(safe-area-inset-bottom,0px);
+    }
+    .queue-panel.open{transform:none}
+    .q-list{padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+  }
+
 </style>
 </head>
 <body>
@@ -1386,6 +1440,9 @@
         </div>
         <div class="chart-item" id="navFM">
           <div class="ico">⚡</div><span>私人FM</span>
+        </div>
+        <div class="chart-item" id="navDaily">
+          <div class="ico">✨</div><span>每日推荐</span><span class="cnt">30</span>
         </div>
       </nav>
 
@@ -1469,7 +1526,7 @@
       <button class="lyrics-toggle" id="ppOpenBtn" title="播放页" aria-label="展开沉浸播放页">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg>
       </button>
-      <button class="lyrics-toggle" id="queueToggle" title="当前播放">
+      <button class="lyrics-toggle" id="queueToggle" title="播放队列">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="13" y2="6"/><line x1="3" y1="12" x2="13" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/><path d="M16 18a2 2 0 1 0 4 0V7l3 2"/></svg>
       </button>
       <div class="volume">
@@ -1499,9 +1556,10 @@
 </div>
 
 <!-- Queue panel -->
+<div class="q-mask" id="qMask"></div>
 <div class="queue-panel" id="queuePanel">
-  <div class="lyrics-head">
-    <h3>当前播放 <span class="q-count" id="qCount"></span></h3>
+  <div class="lyrics-head q-head">
+    <h3>播放队列 <span class="q-count" id="qCount"></span></h3>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="q-clear" id="qClear" aria-label="清空播放队列">清空</button>
       <button class="close" id="qClose" aria-label="关闭播放队列">✕</button>
@@ -1745,6 +1803,7 @@ const lrcTrack = document.getElementById("lrcTrack");
 const searchInput = document.getElementById("searchInput");
 const toastEl = document.getElementById("toast");
 const navFavs = document.getElementById("navFavs");
+const navDaily = document.getElementById("navDaily");
 const navHistory = document.getElementById("navHistory");
 const navFM = document.getElementById("navFM");
 const favCnt = document.getElementById("favCnt");
@@ -1758,6 +1817,7 @@ const qCount = document.getElementById("qCount");
 const qList = document.getElementById("qList");
 const qClose = document.getElementById("qClose");
 const qClear = document.getElementById("qClear");
+const qMask = document.getElementById("qMask");
 
 let currentChart = null;
 let songs = [];
@@ -2618,6 +2678,7 @@ function setActiveNav(type, idx){
   }else if(type==="favs"){ navFavs.classList.add("active"); }
   else if(type==="history"){ navHistory.classList.add("active"); }
   else if(type==="fm"){ navFM.classList.add("active"); }
+  else if(type==="daily"){ navDaily.classList.add("active"); }
 }
 navFavs.addEventListener("click",showFavs);
 navHistory.addEventListener("click",showHistory);
@@ -2625,36 +2686,42 @@ navFM.addEventListener("click",startFM);
 
 /* ---------- Queue panel ---------- */
 function renderQueue(){
-  qCount.textContent = songs.length ? songs.length + "首" : "";
+  qCount.textContent = songs.length ? "· 共 " + songs.length + " 首" : "";
   if(!songs.length){
     qList.innerHTML = `<div class="lrc-empty" style="text-align:center">队列为空</div>`;
     return;
   }
   qList.innerHTML = songs.map((s,i)=>`
     <div class="q-row ${i===currentIdx?'playing':''}" data-qi="${i}">
-      <span class="qi">${i===currentIdx?'♪':i+1}</span>
+      <span class="qi">${i===currentIdx?'<span class="playing-anim"><span></span><span></span><span></span></span>':i+1}</span>
+      <div class="q-cover">${s.pic?`<img src="${thumbUrl(s.pic,64)}" alt="" loading="lazy" decoding="async"/>`:""}</div>
       <div class="qt">
-        <div class="qn">${s.name}</div>
-        <div class="qa">${s.artist}</div>
+        <div class="qn">${escHtml(s.name)}</div>
+        <div class="qa">${escHtml(s.artist)}</div>
       </div>
-      <button class="qx" data-qx="${i}" title="移除">✕</button>
+      <div class="qbtns">
+        <button class="q-next" data-qnext="${i}" title="下一首播放">↑</button>
+        <button class="qx" data-qx="${i}" title="移除">✕</button>
+      </div>
     </div>
   `).join("");
   qList.querySelectorAll(".q-row").forEach(el=>{
     el.addEventListener("click",(e)=>{
-      if(e.target.closest(".qx")) return;
+      if(e.target.closest(".qx,.q-next")) return;
       playSong(+el.dataset.qi);
+      closeQueuePanel();
+    });
+  });
+  qList.querySelectorAll(".q-next").forEach(el=>{
+    el.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      queueMoveNext(+el.dataset.qnext);
     });
   });
   qList.querySelectorAll(".qx").forEach(el=>{
     el.addEventListener("click",(e)=>{
       e.stopPropagation();
-      const i = +el.dataset.qx;
-      songs.splice(i,1);
-      if(i < currentIdx) currentIdx--;
-      else if(i === currentIdx) currentIdx = -1;
-      renderQueue();
-      if(listMode===null && fmMode===false) renderSongs();
+      queueRemove(+el.dataset.qx);
     });
   });
 }
@@ -2669,7 +2736,10 @@ qClose.addEventListener("click",()=>{
 });
 qClear.addEventListener("click",()=>{
   songs = []; currentIdx = -1;
+  try{ audio.pause(); }catch(e){}
+  try{ audio.removeAttribute("src"); audio.load(); }catch(e){}
   renderQueue();
+  if(typeof renderSongs==="function") renderSongs();
   toast("队列已清空");
 });
 
@@ -4199,6 +4269,169 @@ document.addEventListener("headphonejackinterrupted",()=>{
   };
   head.addEventListener("touchend",end);
   head.addEventListener("touchcancel",end);
+})();
+
+/* ---------- 每日推荐 ---------- */
+async function openDaily(){
+  const today = new Date().toISOString().slice(0,10);
+  const cached = store.get('yy_daily', null);
+  let daily = null;
+  if(cached && cached.date===today && Array.isArray(cached.songs) && cached.songs.length>=20){
+    daily = cached.songs;
+  }
+  if(!daily){
+    try{
+      // 候选池：收藏 + 历史（按 id 去重）
+      const pool = new Map();
+      const add = (s, rank)=>{
+        if(!s || !s.name) return;
+        const k = key(s);
+        const old = pool.get(k);
+        if(old){
+          if(rank!=null && (old.rank==null || rank<old.rank)) old.rank = rank;
+        }else{
+          pool.set(k,{s,rank:rank==null?null:rank});
+        }
+      };
+      favs.concat(history).forEach(s=>add(s,null));
+      // 并行取前 3 个榜单，每榜前 60 首
+      await Promise.all(CHARTS.slice(0,3).map(async c=>{
+        try{
+          const list = await fetchPlaylist(c.id);
+          if(Array.isArray(list)) list.slice(0,60).forEach((s,i)=>add(s,i+1));
+        }catch(e){}
+      }));
+      if(!pool.size){ toast("每日推荐生成失败，稍后再试"); return; }
+      // 歌手偏好集合（"A / B" 拆开匹配）
+      const favArtists = new Set(), histArtists = new Set();
+      const collect = (set,arr)=>arr.forEach(x=>String(x.artist||"").split(/\s*[/、]\s*/).forEach(a=>{ if(a) set.add(a); }));
+      collect(favArtists,favs); collect(histArtists,history);
+      const hit = (set,artist)=>String(artist||"").split(/\s*[/、]\s*/).some(a=>a && set.has(a));
+      // 当天日期做种子的 LCG + 歌曲 key 哈希，保证同一天多次生成结果一致（与请求返回顺序无关）
+      let seed = parseInt(today.replace(/-/g,""),10) || 1;
+      const jitter = (k)=>{
+        let h = seed;
+        for(let c=0;c<k.length;c++) h = (h*31 + k.charCodeAt(c)) % 2147483647;
+        h = (h*48271) % 2147483647;
+        return h/2147483647*3 - 1.5;   // 确定性伪随机扰动 ±1.5
+      };
+      const ranked = [...pool.entries()].map(([k,e])=>{
+        let sc = 0;
+        if(hit(favArtists,e.s.artist)) sc += 3;
+        if(hit(histArtists,e.s.artist)) sc += 2;
+        if(e.rank!=null) sc += (60-e.rank)/20;
+        sc += jitter(k);
+        return {s:e.s, sc};
+      }).sort((a,b)=>b.sc-a.sc);
+      daily = ranked.slice(0,30).map(x=>x.s); // 候选不足 30 时自然取全部
+      store.set('yy_daily',{date:today, songs:daily});
+    }catch(e){
+      toast("每日推荐生成失败，稍后再试");
+      return;
+    }
+  }
+  // 渲染：复用榜单列表渲染路径
+  listMode = 'daily'; fmMode = false; currentChart = null; currentIdx = -1;
+  setActiveNav("daily");
+  clearBtn.style.display = "none";
+  chartTitle.textContent = "每日推荐";
+  chartDesc.textContent = "为你精选 · 每天更新";
+  chartTag.textContent = "DAILY";
+  chartTag.style.display = "";
+  chartCover.innerHTML = "✨";
+  chartCover.style.background = "linear-gradient(135deg,#a78bfa,#7c3aed)";
+  songs = daily.slice();
+  renderSongs();
+}
+navDaily.addEventListener("click",()=>openDaily());
+
+/* ---------- 播放队列：关闭 / 下一首播放 / 移除 ---------- */
+function closeQueuePanel(){
+  currentQueueOpen = false;
+  queuePanel.classList.remove("open");
+  qMask.classList.remove("show");
+}
+function queueMoveNext(i){
+  if(i<0 || i>=songs.length) return;
+  if(currentIdx>=0 && (i===currentIdx || i===currentIdx+1)){ toast("已是下一首"); return; }
+  const item = songs.splice(i,1)[0];
+  if(i<currentIdx) currentIdx--;
+  const at = Math.min(currentIdx+1, songs.length);
+  songs.splice(at,0,item);
+  renderQueue();
+  renderSongs();
+}
+function queueRemove(i){
+  if(i<0 || i>=songs.length) return;
+  const wasCur = i===currentIdx;
+  songs.splice(i,1);
+  if(i<currentIdx) currentIdx--;
+  if(wasCur){
+    if(!songs.length){
+      // 队列已空：停止播放并复位
+      try{ audio.pause(); }catch(e){}
+      try{ audio.removeAttribute("src"); audio.load(); }catch(e){}
+      currentIdx = -1;
+      setPlaying(false);
+      renderQueue();
+      renderSongs();
+      toast("队列已清空");
+      return;
+    }
+    if(currentIdx>=songs.length) currentIdx = songs.length-1;
+    playSong(currentIdx); // 仅在移除当前项时续播，避免其它操作卡顿
+  }else{
+    renderQueue();
+    renderSongs();
+  }
+}
+// 打开时同步遮罩，并把当前行滚到可视中间
+queueToggle.addEventListener("click",()=>{
+  qMask.classList.toggle("show", currentQueueOpen);
+  if(currentQueueOpen){
+    requestAnimationFrame(()=>{
+      const cur = qList.querySelector(".q-row.playing");
+      if(cur) cur.scrollIntoView({block:"center"});
+    });
+  }
+});
+qClose.addEventListener("click",()=>qMask.classList.remove("show"));
+qMask.addEventListener("click",closeQueuePanel);
+// Esc 关闭队列时一并收起遮罩（播放页优先，避免误关）
+document.addEventListener("keydown",(e)=>{
+  if(e.code==="Escape" && !playPage.classList.contains("open") && qMask.classList.contains("show")) closeQueuePanel();
+});
+
+/* ---------- 手机手势：左右切歌 / 上下切歌词-评论 ---------- */
+(function(){
+  let sx=0, sy=0, active=false, fired=false;
+  playPage.addEventListener("touchstart",(e)=>{
+    if(!playPage.classList.contains("open")) return;
+    if(e.touches.length!==1) return;
+    // 头部下滑关闭、按钮、歌词/评论列表不参与，避免手势冲突
+    if(e.target.closest(".pp-head, .pp-acts, .pp-btns, button, input, .q-list")) return;
+    sx=e.touches[0].clientX; sy=e.touches[0].clientY;
+    active=true; fired=false;
+  },{passive:true});
+  playPage.addEventListener("touchend",(e)=>{
+    if(!active) return;
+    active=false;
+    if(fired) return;
+    if(!playPage.classList.contains("open")) return;
+    const t=(e.changedTouches && e.changedTouches[0]) || null;
+    if(!t) return;
+    const dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Math.abs(dx)>70 && Math.abs(dx)>Math.abs(dy)*1.5){
+      fired=true;
+      if(dx<0) nextSong(); else prevSong();
+      try{ navigator.vibrate && navigator.vibrate(10); }catch(_){}
+      toast(dx<0 ? "下一首" : "上一首");
+    }else if(Math.abs(dy)>70 && Math.abs(dy)>Math.abs(dx)*1.5){
+      fired=true;
+      switchPpTab(dy<0 ? "cmt" : "lrc");
+    }
+  },{passive:true});
+  playPage.addEventListener("touchcancel",()=>{ active=false; fired=false; },{passive:true});
 })();
 
 /* ---------- PWA ---------- */
