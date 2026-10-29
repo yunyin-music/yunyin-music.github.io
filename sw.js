@@ -1,5 +1,5 @@
 /* 云音播放器 Service Worker：应用壳缓存（cache-first），API 请求直连 */
-const CACHE = "yunyin-v21";
+const CACHE = "yunyin-v22";
 const SHELL = [
   "./",
   "./index.html",
@@ -7,6 +7,8 @@ const SHELL = [
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",
+  "./icon-32.png",
+  "./icon-maskable-512.png",
 ];
 
 self.addEventListener("install", (e) => {
@@ -27,7 +29,7 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   // 音乐 API / 歌词 / 封面 / 音频：直连，不缓存
   if (url.hostname.includes("injahow") || url.hostname.includes("163.com") ||
-      url.hostname.includes("gdstudio") || url.hostname.includes("126.net") ||
+      url.hostname.includes("126.net") ||
       url.hostname.includes("cors.eu.org") || url.hostname.includes("allorigins") ||
       url.hostname.includes("codetabs")) {
     return;
