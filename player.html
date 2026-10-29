@@ -255,6 +255,7 @@
   .song-row:hover .idx .num{display:none}
   .song-row:hover .idx .play-mini{display:inline}
   .idx .play-mini{display:none;color:var(--accent)}
+  .idx .play-mini svg{display:inline-block;vertical-align:middle}
   .song-row.playing .idx .num{display:none}
   .song-row.playing .idx .playing-anim{display:inline-flex}
   .idx .playing-anim{display:none;align-items:flex-end;gap:2px;height:14px}
@@ -1362,9 +1363,73 @@
     .q-list{padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
   }
 
+  /* ---------- 图标系统：24×24 网格 · 1.6px 描边 · 圆头线端 ---------- */
+  .i{width:18px;height:18px;display:block;flex:none;fill:none;stroke:currentColor;
+     stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .i-10{width:10px;height:10px}
+  .i-12{width:12px;height:12px}
+  .i-14{width:14px;height:14px}
+  .i-15{width:15px;height:15px}
+  .i-16{width:16px;height:16px}
+  .i-17{width:17px;height:17px}
+  .i-19{width:19px;height:19px}
+  .i-20{width:20px;height:20px}
+  .i-22{width:22px;height:22px}
+  .i-24{width:24px;height:24px}
+  .i-38{width:38px;height:38px;stroke-width:1.5}
+  .chart-cover .i{opacity:.5}
+  .m-logo .i{width:15px;height:15px}
+  .lyrics-head .close,.pp-collapse{display:flex;align-items:center;justify-content:center}
+  .q-backup button{display:inline-flex;align-items:center;justify-content:center;gap:5px}
+  .q-row .q-next,.q-row .qx{display:flex;align-items:center;justify-content:center}
+  .pl-tile .em svg{width:23px;height:23px}
+  .empty .i{margin:0 auto 12px}
+
 </style>
 </head>
 <body>
+<!-- 云音图标系统 · 24×24 网格 · 1.6px 描边 · 圆头线端 -->
+<svg style="display:none" aria-hidden="true" focusable="false">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8.5 5.4 19 12 8.5 18.6z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="8" y="5" width="3.2" height="14" rx="1.4" fill="currentColor" stroke="none"/><rect x="12.8" y="5" width="3.2" height="14" rx="1.4" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6.6 5.4v13.2" stroke-width="1.8"/><path d="M18 5.9 8.6 12 18 18.1z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M17.4 5.4v13.2" stroke-width="1.8"/><path d="M6 5.9 15.4 12 6 18.1z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M4 7h3.2l9.3 10H20"/><path d="M4 17h3.2l3.1-3.4"/><path d="M13.4 9.6 16.5 7H20"/><path d="M17.4 4.2 20.4 7l-3 2.8"/><path d="M17.4 14.2 20.4 17l-3 2.8"/></symbol>
+  <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M4.2 9.4A4.2 4.2 0 0 1 8.4 5.2h9.4"/><path d="M15.4 2.6 18.2 5.2l-2.8 2.6"/><path d="M19.8 14.6a4.2 4.2 0 0 1-4.2 4.2H6.2"/><path d="M8.6 21.4 5.8 18.8l2.8-2.6"/></symbol>
+  <symbol id="i-repeat1" viewBox="0 0 24 24"><path d="M4.2 9.4A4.2 4.2 0 0 1 8.4 5.2h9.4"/><path d="M15.4 2.6 18.2 5.2l-2.8 2.6"/><path d="M19.8 14.6a4.2 4.2 0 0 1-4.2 4.2H6.2"/><path d="M8.6 21.4 5.8 18.8l2.8-2.6"/><path d="M12 9.2v5" stroke-width="1.4"/><path d="M11.2 9.4h1" stroke-width="1.4"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 19.9c-1.1-.74-7.1-4.9-7.1-9.4a4.2 4.2 0 0 1 7.1-3 4.2 4.2 0 0 1 7.1 3c0 4.5-6 8.66-7.1 9.4z"/></symbol>
+  <symbol id="i-like" viewBox="0 0 24 24"><rect x="3.4" y="10.2" width="3.4" height="9.4" rx="1"/><path d="M6.8 18.6h9.8a1.9 1.9 0 0 0 1.85-1.47l1.1-4.6A1.6 1.6 0 0 0 18 10.2h-3.9l.5-3.1a1.5 1.5 0 0 0-2.5-1.3L6.8 10.9z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.3"/><path d="M12 7.6v4.8l3.1 2"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13.4 2.8 5.8 13.1h4.9L10.6 21.2 18.2 11h-4.9z"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3.2c.5 3.4 1.9 4.8 5.3 5.3-3.4.5-4.8 1.9-5.3 5.3-.5-3.4-1.9-4.8-5.3-5.3 3.4-.5 4.8-1.9 5.3-5.3z"/><path d="M17.6 13.4c.3 1.7 1 2.4 2.7 2.7-1.7.3-2.4 1-2.7 2.7-.3-1.7-1-2.4-2.7-2.7 1.7-.3 2.4-1 2.7-2.7z" stroke-width="1.4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.6"/><path d="m15.8 15.8 4.2 4.2"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4.2 7.4h15.6" stroke-width="1.8"/><path d="M4.2 12h11.6" stroke-width="1.8"/><path d="M4.2 16.6h7.4" stroke-width="1.8"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.4 6.4 17.6 17.6"/><path d="M17.6 6.4 6.4 17.6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6.6 9.4 12 14.6 17.4 9.4"/></symbol>
+  <symbol id="i-chevron-up" viewBox="0 0 24 24"><path d="M6.6 14.6 12 9.4 17.4 14.6"/></symbol>
+  <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M14.6 6.6 9.4 12 14.6 17.4"/></symbol>
+  <symbol id="i-queue" viewBox="0 0 24 24"><path d="M3.6 6.6h11"/><path d="M3.6 12h11"/><path d="M3.6 17.4h7.2"/><path d="M20.4 8.4v9.2"/><path d="M20.4 8.4c-2 .9-3.4 1.6-4.6 2.2" stroke-width="1.4"/><circle cx="18" cy="18" r="2.4"/></symbol>
+  <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9.4h3.4L11.8 6v12L7.4 14.6H4z"/><path d="M15.2 9.6a3.4 3.4 0 0 1 0 4.8" stroke-width="1.4"/><path d="M17.8 7.2a7 7 0 0 1 0 9.6" stroke-width="1.4"/></symbol>
+  <symbol id="i-volume-1" viewBox="0 0 24 24"><path d="M4 9.4h3.4L11.8 6v12L7.4 14.6H4z"/><path d="M15.2 9.6a3.4 3.4 0 0 1 0 4.8" stroke-width="1.4"/></symbol>
+  <symbol id="i-volume-mute" viewBox="0 0 24 24"><path d="M4 9.4h3.4L11.8 6v12L7.4 14.6H4z"/><path d="m15.8 9.6 4.6 4.8"/><path d="m20.4 9.6-4.6 4.8"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9.2 17.4V6.2l9-1.9v11.4"/><circle cx="6.6" cy="17.8" r="2.6"/><circle cx="15.6" cy="15.7" r="2.6"/></symbol>
+  <symbol id="i-pip" viewBox="0 0 24 24"><rect x="3" y="4.6" width="18" height="14.8" rx="3"/><rect x="11.4" y="11" width="7.2" height="5.6" rx="1.8" fill="currentColor" stroke="none" opacity=".7"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.2" y="3.6" width="17.6" height="16.8" rx="3"/><circle cx="8.6" cy="8.8" r="1.5"/><path d="M20.8 15.6 16 10.8 5.4 20.4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7.4h5.6"/><path d="M14.4 7.4h5.6"/><path d="M4 16.6h9.6"/><path d="M18.4 16.6h1.6"/><circle cx="12" cy="7.4" r="2.2"/><circle cx="16" cy="16.6" r="2.2"/></symbol>
+  <symbol id="i-disc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="2.4"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M4.8 12a7.2 7.2 0 0 1 12.4-5"/><path d="M19.2 12a7.2 7.2 0 0 1-12.4 5"/><path d="M17.6 3.8v3.4h-3.4"/><path d="M6.4 20.2v-3.4h3.4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.6 7.2h14.8"/><path d="M9.2 7.2V4.8h5.6v2.4"/><path d="M6.6 7.2 7.5 19.4h9L17.4 7.2"/><path d="M10.4 10.4v5.6" stroke-width="1.3"/><path d="M13.6 10.4v5.6" stroke-width="1.3"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3.6v11"/><path d="M8.4 7.2 12 3.6 15.6 7.2"/><path d="M5.4 12.6v6.2h13.2v-6.2"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3.8v11.6"/><path d="M7.6 11.2 12 15.6 16.4 11.2"/><path d="M4.8 18.6h14.4"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 20.2V8.6"/><path d="M7.6 13 12 8.6 16.4 13"/><path d="M4.8 4.4h14.4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5.6 12.6 9.8 16.8 18.6 7.6"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="6.2" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="17.8" cy="12" r="1.5" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M9.4 4.4H4.4v5"/><path d="M14.6 4.4h5v5"/><path d="M19.6 14.6v5h-5"/><path d="M4.4 14.6v5h5"/><path d="M4.4 4.4 9.6 9.6" stroke-width="1.3"/><path d="M19.6 19.6 14.4 14.4" stroke-width="1.3"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+  <symbol id="i-headphone" viewBox="0 0 24 24"><path d="M4 14.2v-2.2a8 8 0 0 1 16 0v2.2"/><path d="M4 14.2h2.4a1.4 1.4 0 0 1 1.4 1.4v3.2a1.4 1.4 0 0 1-1.4 1.4H6a2 2 0 0 1-2-2z"/><path d="M20 14.2h-2.4a1.4 1.4 0 0 0-1.4 1.4v3.2a1.4 1.4 0 0 0 1.4 1.4H18a2 2 0 0 0 2-2z"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect x="3.4" y="4.4" width="17.2" height="15.2" rx="2.6"/><path d="M8.2 4.4v15.2" stroke-width="1.3"/><path d="M15.8 4.4v15.2" stroke-width="1.3"/><path d="M3.4 9.4h4.8M3.4 14.6h4.8M15.8 9.4h4.8M15.8 14.6h4.8" stroke-width="1.3"/></symbol>
+</svg>
 <div class="bg-mesh"></div>
 <div class="bg-noise"></div>
 <div class="page-ambient" aria-hidden="true"></div>
@@ -1375,13 +1440,13 @@
   <div class="wall-field" id="wallField">
     <div class="wall-world" id="wallWorld"></div>
   </div>
-  <button class="wall-back" id="wallBack" aria-label="返回列表">‹</button>
+  <button class="wall-back" id="wallBack" aria-label="返回列表"><svg class="i i-22"><use href="#i-chevron-left"/></svg></button>
   <!-- 全屏播放卡：模糊底 + 居中清晰封面 + 播放控制（不再把低分辨率封面拉满全屏） -->
   <div class="wall-zoom" id="wallZoom" aria-hidden="true">
     <div class="wall-zoom-bg" id="wallZoomBg"></div>
     <div class="wall-zoom-glow" id="wallZoomGlow"></div>
     <div class="wall-zoom-art" id="wallZoomImg"></div>
-    <button class="wall-zoom-close" id="wallZoomClose" aria-label="退出全屏">×</button>
+    <button class="wall-zoom-close" id="wallZoomClose" aria-label="退出全屏"><svg class="i i-16"><use href="#i-close"/></svg></button>
     <div class="wall-zoom-info">
       <strong id="wallZoomTitle"></strong>
       <small id="wallZoomArtist"></small>
@@ -1401,11 +1466,11 @@
 <!-- 移动端顶栏（仅 ≤900px 显示） -->
 <header class="m-top" aria-label="移动端导航">
   <button class="m-btn" id="mMenuBtn" aria-label="打开菜单">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="14" y2="17"/></svg>
+    <svg class="i i-20"><use href="#i-menu"/></svg>
   </button>
-  <div class="m-brand"><span class="m-logo">♪</span> 云音</div>
+  <div class="m-brand"><span class="m-logo"><svg class="i"><use href="#i-music"/></svg></span> 云音</div>
   <button class="m-btn" id="mSearchBtn" aria-label="搜索">
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <svg class="i i-19"><use href="#i-search"/></svg>
   </button>
 </header>
 <div class="m-mask" id="mMask"></div>
@@ -1437,7 +1502,7 @@
     </div>
 
     <div class="search">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <svg class="i i-16"><use href="#i-search"/></svg>
       <input id="searchInput" placeholder="搜索歌曲 / 歌手..." />
     </div>
 
@@ -1448,16 +1513,16 @@
       <div class="nav-label">我的音乐</div>
       <nav class="charts">
         <div class="chart-item" id="navFavs">
-          <div class="ico">❤️</div><span>我的收藏</span><span class="cnt" id="favCnt">0</span>
+          <div class="ico"><svg class="i i-15"><use href="#i-heart"/></svg></div><span>我的收藏</span><span class="cnt" id="favCnt">0</span>
         </div>
         <div class="chart-item" id="navHistory">
-          <div class="ico">🕐</div><span>最近播放</span><span class="cnt" id="histCnt">0</span>
+          <div class="ico"><svg class="i i-15"><use href="#i-clock"/></svg></div><span>最近播放</span><span class="cnt" id="histCnt">0</span>
         </div>
         <div class="chart-item" id="navFM">
-          <div class="ico">⚡</div><span>私人FM</span>
+          <div class="ico"><svg class="i i-15"><use href="#i-bolt"/></svg></div><span>私人FM</span>
         </div>
         <div class="chart-item" id="navDaily">
-          <div class="ico">✨</div><span>每日推荐</span><span class="cnt">30</span>
+          <div class="ico"><svg class="i i-15"><use href="#i-sparkle"/></svg></div><span>每日推荐</span><span class="cnt">30</span>
         </div>
       </nav>
 
@@ -1475,17 +1540,17 @@
   <!-- Main -->
   <main class="main">
     <div class="chart-header">
-      <div class="chart-cover" id="chartCover">🔥</div>
+      <div class="chart-cover" id="chartCover"><svg class="i i-38"><use href="#i-flame"/></svg></div>
       <div class="chart-meta">
         <span class="tag" id="chartTag">REAL-TIME</span>
         <h2 id="chartTitle">热歌榜</h2>
         <p id="chartDesc">云音乐用户一周内收听所有线上歌曲官方 TOP 排行榜，每日更新。</p>
       </div>
       <div class="chart-actions">
-        <button class="btn-clear" id="viewToggle" title="切换 列表/沉浸式 视图">◈ 沉浸式</button>
+        <button class="btn-clear" id="viewToggle" title="切换 列表/沉浸式 视图"><svg class="i i-16"><use href="#i-expand"/></svg> 沉浸式</button>
         <button class="btn-clear" id="clearBtn" style="display:none">清空记录</button>
         <button class="btn-play-all" id="playAllBtn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="i i-14"><use href="#i-play"/></svg>
           播放全部
         </button>
       </div>
@@ -1505,26 +1570,26 @@
         <div class="a" id="pArtist">选择一首歌曲开始聆听</div>
       </div>
       <button class="fav-btn" id="pFavBtn" title="收藏" aria-label="收藏这首歌">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <svg class="i i-17"><use href="#i-heart"/></svg>
       </button>
     </div>
 
     <div class="p-center">
       <div class="controls">
         <button class="ctrl-btn" id="modeBtn" title="播放模式" aria-label="切换播放模式">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+          <svg class="i"><use href="#i-repeat"/></svg>
         </button>
         <button class="ctrl-btn" id="prevBtn" title="上一首" aria-label="上一首">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+          <svg class="i i-20"><use href="#i-prev"/></svg>
         </button>
         <button class="ctrl-btn play" id="playBtn" title="播放" aria-label="播放或暂停">
-          <svg id="playIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="i i-20" id="playIcon"><use href="#i-play"/></svg>
         </button>
         <button class="ctrl-btn" id="nextBtn" title="下一首" aria-label="下一首">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/></svg>
+          <svg class="i i-20"><use href="#i-next"/></svg>
         </button>
         <button class="lyrics-toggle" id="lrcToggle" title="歌词">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          <svg class="i"><use href="#i-music"/></svg>
         </button>
       </div>
       <div class="progress">
@@ -1539,14 +1604,14 @@
 
     <div class="p-right">
       <button class="lyrics-toggle" id="ppOpenBtn" title="播放页" aria-label="展开沉浸播放页">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg>
+        <svg class="i"><use href="#i-chevron-up"/></svg>
       </button>
       <button class="lyrics-toggle" id="queueToggle" title="播放队列">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="13" y2="6"/><line x1="3" y1="12" x2="13" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/><path d="M16 18a2 2 0 1 0 4 0V7l3 2"/></svg>
+        <svg class="i"><use href="#i-queue"/></svg>
       </button>
       <div class="volume">
         <button class="vol-btn" id="volBtn">
-          <svg id="volIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <svg class="i" id="volIcon"><use href="#i-volume"/></svg>
         </button>
         <div class="bar" id="volBar">
           <div class="fill" id="volFill" style="width:70%"></div>
@@ -1561,7 +1626,7 @@
 <div class="lyrics-panel" id="lyricsPanel">
   <div class="lyrics-head">
     <h3>歌词</h3>
-    <button class="close" id="lrcClose">✕</button>
+    <button class="close" id="lrcClose" aria-label="关闭歌词"><svg class="i i-16"><use href="#i-close"/></svg></button>
   </div>
   <div class="lyrics-body">
     <div class="lrc-track" id="lrcTrack">
@@ -1577,7 +1642,7 @@
     <h3>播放队列 <span class="q-count" id="qCount"></span></h3>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="q-clear" id="qClear" aria-label="清空播放队列">清空</button>
-      <button class="close" id="qClose" aria-label="关闭播放队列">✕</button>
+      <button class="close" id="qClose" aria-label="关闭播放队列"><svg class="i i-16"><use href="#i-close"/></svg></button>
     </div>
   </div>
   <div class="q-tools">
@@ -1600,8 +1665,8 @@
     </label>
   </div>
   <div class="q-backup">
-    <button id="qFavExport" aria-label="导出收藏到文件">⇩ 导出收藏</button>
-    <button id="qFavImport" aria-label="从文件导入收藏">⇧ 导入收藏</button>
+    <button id="qFavExport" aria-label="导出收藏到文件"><svg class="i i-14"><use href="#i-download"/></svg> 导出收藏</button>
+    <button id="qFavImport" aria-label="从文件导入收藏"><svg class="i i-14"><use href="#i-upload"/></svg> 导入收藏</button>
     <input type="file" id="qFavFile" accept=".json,application/json" hidden/>
   </div>
   <div class="q-list" id="qList"></div>
@@ -1613,7 +1678,7 @@
   <canvas class="pp-particles" id="ppParticles" aria-hidden="true"></canvas>
   <div class="pp-head">
     <button class="pp-collapse" id="ppClose" title="收起">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      <svg class="i i-20"><use href="#i-chevron-down"/></svg>
     </button>
     <div class="pp-head-info">
       <div class="t" id="ppTitle">未在播放</div>
@@ -1621,12 +1686,12 @@
     </div>
     <div class="pp-acts">
       <button class="pp-act" id="ppPip" title="桌面悬浮歌词（需 Chrome/Edge）" aria-label="悬浮歌词">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="14" height="12" rx="2"/><rect x="13" y="10" width="9" height="10" rx="2" fill="currentColor" stroke="none" opacity=".55"/></svg>
+        <svg class="i i-17"><use href="#i-pip"/></svg>
       </button>
       <button class="pp-act" id="ppPoster" title="生成歌词分享海报" aria-label="歌词海报">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <svg class="i i-17"><use href="#i-image"/></svg>
       </button>
-      <button class="pp-act" id="ppEq" title="音效" aria-label="切换音效">EQ</button>
+      <button class="pp-act" id="ppEq" title="音效" aria-label="切换音效"><svg class="i i-17"><use href="#i-sliders"/></svg></button>
     </div>
   </div>
   <div class="pp-body">
@@ -1754,23 +1819,25 @@ async function lookupSongId(s){
 
 // Charts config
 const CHARTS = [
-  { id:"3778678", name:"热歌榜", icon:"🔥", desc:"云音乐用户一周内收听所有线上歌曲官方 TOP 排行榜，每日更新。" },
-  { id:"3779629", name:"新歌榜", icon:"✨", desc:"云音乐最新歌曲热度排行，汇聚近期首发新歌。" },
-  { id:"19723756", name:"飙升榜", icon:"🚀", desc:"云音乐近 24 小时内播放量涨幅最快歌曲排行。" },
-  { id:"2884035", name:"原创榜", icon:"🎵", desc:"云音乐原创歌曲排行，发现独立音乐人的优质作品。" },
-  { id:"2614035974", name:"网红热歌榜", icon:"📱", desc:"全网最火短视频 BGM 与热门网红歌曲合集。" },
-  { id:"71385702", name:"电音榜", icon:"🎛️", desc:"云音乐电音歌曲排行，感受电子音乐的节拍魅力。" },
+  { id:"3778678", name:"热歌榜", icon:"i-flame", desc:"云音乐用户一周内收听所有线上歌曲官方 TOP 排行榜，每日更新。" },
+  { id:"3779629", name:"新歌榜", icon:"i-sparkle", desc:"云音乐最新歌曲热度排行，汇聚近期首发新歌。" },
+  { id:"19723756", name:"飙升榜", icon:"i-bolt", desc:"云音乐近 24 小时内播放量涨幅最快歌曲排行。" },
+  { id:"2884035", name:"原创榜", icon:"i-music", desc:"云音乐原创歌曲排行，发现独立音乐人的优质作品。" },
+  { id:"2614035974", name:"网红热歌榜", icon:"i-headphone", desc:"全网最火短视频 BGM 与热门网红歌曲合集。" },
+  { id:"71385702", name:"电音榜", icon:"i-sliders", desc:"云音乐电音歌曲排行，感受电子音乐的节拍魅力。" },
 ];
 
 // 推荐歌单（已验证可用）
 const PLAYLISTS = [
-  { id:"2301490995", name:"华语情歌", icon:"🎤", count:22,  g:"linear-gradient(135deg,#f43f5e,#fb7185)" },
-  { id:"7220139227", name:"怀旧金曲", icon:"📻", count:50,  g:"linear-gradient(135deg,#4b6cb7,#182848)" },
-  { id:"66518941",   name:"轻柔钢琴", icon:"🎹", count:84,  g:"linear-gradient(135deg,#7f7fd5,#91eae4)" },
-  { id:"5314368341", name:"欧美电音", icon:"🎧", count:77,  g:"linear-gradient(135deg,#fc466b,#3f5efb)" },
-  { id:"508075145",  name:"影视金曲", icon:"🎬", count:82,  g:"linear-gradient(135deg,#f59e0b,#fbbf24)" },
-  { id:"2500887487", name:"游戏原声", icon:"🎮", count:116, g:"linear-gradient(135deg,#11998e,#38ef7d)" },
+  { id:"2301490995", name:"华语情歌", icon:"i-heart", count:22,  g:"linear-gradient(135deg,#f43f5e,#fb7185)" },
+  { id:"7220139227", name:"怀旧金曲", icon:"i-disc", count:50,  g:"linear-gradient(135deg,#4b6cb7,#182848)" },
+  { id:"66518941",   name:"轻柔钢琴", icon:"i-music", count:84,  g:"linear-gradient(135deg,#7f7fd5,#91eae4)" },
+  { id:"5314368341", name:"欧美电音", icon:"i-sliders", count:77,  g:"linear-gradient(135deg,#fc466b,#3f5efb)" },
+  { id:"508075145",  name:"影视金曲", icon:"i-film", count:82,  g:"linear-gradient(135deg,#f59e0b,#fbbf24)" },
+  { id:"2500887487", name:"游戏原声", icon:"i-headphone", count:116, g:"linear-gradient(135deg,#11998e,#38ef7d)" },
 ];
+/* 图标引用统一走 sprite（设计系统里唯一入口） */
+const iconSvg = (id, size) => `<svg class="i i-${size||18}"><use href="#${id}"/></svg>`;
 
 /* ---------- Local storage helpers ---------- */
 const store = {
@@ -1849,12 +1916,9 @@ let songs = [];
 let currentIdx = -1;
 let playMode = 0; // 0: list loop, 1: single loop, 2: shuffle
 const modeIcons = [
-  // list-loop
-  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>',
-  // single-loop
-  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/><text x="12" y="15" font-size="8" fill="currentColor" stroke="none" text-anchor="middle">1</text></svg>',
-  // shuffle
-  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/></svg>'
+  iconSvg("i-repeat"),   // 列表循环
+  iconSvg("i-repeat1"),  // 单曲循环
+  iconSvg("i-shuffle")   // 随机播放
 ];
 const modeNames = ["列表循环","单曲循环","随机播放"];
 let lyrics = [];
@@ -1865,7 +1929,7 @@ let lastLrcIdx = -1;
 function renderCharts(){
   chartsEl.innerHTML = CHARTS.map((c,i)=>`
     <div class="chart-item" data-idx="${i}">
-      <div class="ico">${c.icon}</div>
+      <div class="ico">${iconSvg(c.icon,15)}</div>
       <span>${c.name}</span>
     </div>
   `).join("");
@@ -1888,7 +1952,7 @@ async function loadChart(idx){
   chartTitle.textContent = c.name;
   chartDesc.textContent = c.desc;
   chartTag.textContent = "REAL-TIME";
-  chartCover.innerHTML = c.icon;
+  chartCover.innerHTML = iconSvg(c.icon,38);
   chartCover.style.background = "linear-gradient(135deg,#27272a,#18181b)";
 
   // 榜单本地缓存：命中立即渲染（首开速度 = 0 网络），过期/缺失才走网络
@@ -1926,7 +1990,7 @@ async function loadChart(idx){
     }
   }else if(!fresh && currentChart===idx){
     // 有旧缓存兜底就不报错；仅完全无数据时提示（骨架墙保留，点重试再拉一次）
-    songListEl.innerHTML = `<div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><p>加载失败，请稍后重试</p><button class="btn-retry" id="retryBtn">重新加载</button></div>`;
+    songListEl.innerHTML = `<div class="empty"><svg class="i i-38"><use href="#i-refresh"/></svg><p>加载失败，请稍后重试</p><button class="btn-retry" id="retryBtn">重新加载</button></div>`;
     const rb = document.getElementById("retryBtn");
     if(rb) rb.addEventListener("click", ()=>loadChart(idx));
     toast("网络加载失败，已自动重试");
@@ -1963,14 +2027,14 @@ function renderSongs(){
   }
   // use first song's cover as chart cover
   if(songs[0] && songs[0].pic){
-    chartCover.innerHTML = `<img src="${thumbUrl(songs[0].pic,200)}" alt="" onerror="this.parentElement.innerHTML='🔥'"/>`;
+    chartCover.innerHTML = `<img src="${thumbUrl(songs[0].pic,200)}" alt="" onerror="this.parentElement.innerHTML=iconSvg('i-flame',38)"/>`;
   }
   const foliaOn = songListEl.classList.contains("folia");
   songListEl.innerHTML = songs.map((s,i)=>`
     <div class="song-row ${i===currentIdx?'playing':''}" data-idx="${i}">
       <div class="idx ${i<3?'top':''}">
         <span class="num">${String(i+1).padStart(2,'0')}</span>
-        <span class="play-mini">▶</span>
+        <span class="play-mini"><svg class="i i-10"><use href="#i-play"/></svg></span>
         <span class="playing-anim"><span></span><span></span><span></span></span>
       </div>
       <div class="song-info">
@@ -1984,7 +2048,7 @@ function renderSongs(){
       <div class="duration">--:--</div>
       <div class="more">
         <button class="fav-btn row-fav ${favSet.has(key(s))?'on':''}" data-fav="${i}" title="收藏">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <svg class="i i-15"><use href="#i-heart"/></svg>
         </button>
       </div>
     </div>
@@ -2118,10 +2182,10 @@ function preloadNext(idx){
 }
 function setPlaying(playing){
   if(playing){
-    playIcon.innerHTML = '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
+    playIcon.innerHTML = '<use href="#i-pause"/>';
     vinyl.classList.add("spinning");
   }else{
-    playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+    playIcon.innerHTML = '<use href="#i-play"/>';
     vinyl.classList.remove("spinning");
   }
 }
@@ -2301,11 +2365,11 @@ volBtn.addEventListener("click",()=>{
 function updateVolIcon(){
   const v = audio.volume;
   if(v===0){
-    volIcon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
+    volIcon.innerHTML = '<use href="#i-volume-mute"/>';
   }else if(v<0.5){
-    volIcon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>';
+    volIcon.innerHTML = '<use href="#i-volume-1"/>';
   }else{
-    volIcon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>';
+    volIcon.innerHTML = '<use href="#i-volume"/>';
   }
 }
 
@@ -2449,7 +2513,7 @@ async function doSearch(kw){
   clearBtn.style.display = "none";
   chartTitle.textContent = `搜索：${kw}`;
   chartDesc.textContent = `正在搜索"${kw}"...`;
-  chartCover.innerHTML = "🔍";
+  chartCover.innerHTML = iconSvg('i-search',38);
   songListEl.innerHTML = `<div class="loader"><div class="spinner"></div><p>搜索中...</p></div>`;
   let results = [];
   // 网易云官方搜索（经 CORS 代理，仅网易源）
@@ -2551,7 +2615,7 @@ function showFavs(){
   chartTitle.textContent = "我的收藏";
   chartDesc.textContent = favs.length ? `共 ${favs.length} 首，红心标记的歌曲都在这里` : "还没有收藏，点击歌曲右侧的红心试试";
   chartTag.textContent = "LOCAL";
-  chartCover.innerHTML = "❤️";
+  chartCover.innerHTML = iconSvg('i-heart',38);
   chartCover.style.background = "linear-gradient(135deg,#a78bfa,#7c3aed)";
   songs = favs.slice();
   renderSongs();
@@ -2564,7 +2628,7 @@ function showHistory(){
   chartTitle.textContent = "最近播放";
   chartDesc.textContent = history.length ? `共 ${history.length} 条播放记录` : "暂无播放记录";
   chartTag.textContent = "LOCAL";
-  chartCover.innerHTML = "🕐";
+  chartCover.innerHTML = iconSvg('i-clock',38);
   chartCover.style.background = "linear-gradient(135deg,#4b6cb7,#182848)";
   songs = history.slice();
   renderSongs();
@@ -2589,7 +2653,7 @@ clearBtn.addEventListener("click",()=>{
 });
 
 /* ---------- Private FM ---------- */
-const FM_EMOJI = ["⚡","🎵","🎷","🎺","🎸","🥁","🎻","🪕"];
+const FM_ICONS = ["i-bolt","i-music","i-disc","i-sparkle","i-headphone","i-flame"];
 function startFM(){
   fmMode = true; listMode = null; currentChart = null; currentIdx = -1;
   fmStarted = false;
@@ -2598,7 +2662,7 @@ function startFM(){
   chartTitle.textContent = "私人FM";
   chartDesc.textContent = "从全部榜单随机为你推歌，随心畅听";
   chartTag.textContent = "RANDOM";
-  chartCover.innerHTML = FM_EMOJI[Math.floor(Math.random()*FM_EMOJI.length)];
+  chartCover.innerHTML = iconSvg(FM_ICONS[Math.floor(Math.random()*FM_ICONS.length)],38);
   chartCover.style.background = "linear-gradient(135deg,#7f5af0,#2cb67d)";
   // 合并所有榜单歌曲去重作为FM曲库
   fmPool = [];
@@ -2628,20 +2692,20 @@ function renderWall(){
   const custom = store.get('yy_custom', null);
   let html = PLAYLISTS.map((p,i)=>`
     <div class="pl-tile" style="background:${p.g}" data-pl="${i}" title="加载 ${p.name} 歌单（${p.count}首）">
-      <span class="em">${p.icon}</span>
+      <span class="em">${iconSvg(p.icon,23)}</span>
       <span>${p.name}</span>
       <span class="pc">${p.count}首</span>
     </div>
   `).join("");
   if(custom && custom.id) html += `
     <div class="pl-tile" style="background:linear-gradient(135deg,#a78bfa,#7c3aed)" data-custom="1" title="加载我导入的歌单">
-      <span class="em">📂</span>
+      <span class="em">${iconSvg('i-disc',23)}</span>
       <span>${escHtml(custom.name)||"我的歌单"}</span>
       <span class="pc">CUSTOM</span>
     </div>`;
   html += `
     <div class="pl-tile" style="background:linear-gradient(135deg,#3f3f46,#27272a)" data-import="1" title="粘贴网易云歌单链接或ID导入">
-      <span class="em">＋</span>
+      <span class="em">${iconSvg('i-plus',23)}</span>
       <span>导入歌单</span>
       <span class="pc">IMPORT</span>
     </div>`;
@@ -2669,7 +2733,7 @@ async function loadCustomPlaylist(pid, name, fromImport){
   chartTitle.textContent = name || "我的歌单";
   chartDesc.textContent = "自定义导入的网易云歌单";
   chartTag.textContent = "PLAYLIST";
-  chartCover.innerHTML = "📂";
+  chartCover.innerHTML = iconSvg('i-disc',38);
   chartCover.style.background = "linear-gradient(135deg,#a78bfa,#7c3aed)";
   songListEl.innerHTML = `<div class="loader"><div class="spinner"></div><p>加载歌单中...</p></div>`;
   try{
@@ -2740,8 +2804,8 @@ function renderQueue(){
         <div class="qa">${escHtml(s.artist)}</div>
       </div>
       <div class="qbtns">
-        <button class="q-next" data-qnext="${i}" title="下一首播放">↑</button>
-        <button class="qx" data-qx="${i}" title="移除">✕</button>
+        <button class="q-next" data-qnext="${i}" title="下一首播放"><svg class="i i-14"><use href="#i-chevron-up"/></svg></button>
+        <button class="qx" data-qx="${i}" title="移除"><svg class="i i-14"><use href="#i-close"/></svg></button>
       </div>
     </div>
   `).join("");
@@ -3033,7 +3097,7 @@ function updatePlayPage(s){
   pbArtist2.textContent = s.artist;
   pbAlbum.textContent = s.album || "—";
   pbDur.textContent = s.dur ? fmt(s.dur/1000) : "—";
-  pbFav.textContent = favs.some(f=>f.id===s.id) ? "❤ 已收藏" : "☆ 未收藏";
+  pbFav.textContent = favs.some(f=>f.id===s.id) ? "已收藏" : "未收藏";
   pbCmt.textContent = cmtCache.has(s.id) ? cmtLike(cmtCache.get(s.id).total||0)+" 条" : "加载中…";
   if(cmtSongId !== s.id){
     ppCmtList.dataset.done = "0";
@@ -3156,7 +3220,7 @@ function cmtItem(c){
       <div class="ct">${escHtml(c.content)}</div>
       <div class="ft">
         <span>${cmtTime(c.time||Date.now())}</span>
-        <span class="like">👍 ${cmtLike(c.likedCount)}</span>
+        <span class="like">${iconSvg('i-like',12)} ${cmtLike(c.likedCount)}</span>
       </div>
     </div>
   </div>`;
@@ -3368,11 +3432,11 @@ var WALL = (function(){
   const growFor=()=>innerWidth<640?4:5;
   // 密铺模板（对齐视频）：大量 1x1 小卡，少量 2x1 宽幅与 2x2/1x2 大卡
   const SPANS=[[1,1],[1,1],[2,1],[1,1],[2,2],[1,1],[1,1],[1,2],[1,1],[2,1],[1,1],[1,1],[2,2],[1,1],[1,2],[1,1],[2,1],[1,1],[1,1],[1,1],[2,1],[1,1],[1,2],[1,1]];
-  const ICON_PLAY='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-  const ICON_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
-  const ICON_EXPAND='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H3v6M15 3h6v6M3 15v6h6M21 15v6h-6"/></svg>';
-  const ICON_PREV='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zm3 7l9 7V5z"/></svg>';
-  const ICON_NEXT='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM15 12L6 19V5z"/></svg>';
+  const ICON_PLAY='<svg class="i"><use href="#i-play"/></svg>';
+  const ICON_PAUSE='<svg class="i"><use href="#i-pause"/></svg>';
+  const ICON_EXPAND='<svg class="i"><use href="#i-expand"/></svg>';
+  const ICON_PREV='<svg class="i"><use href="#i-prev"/></svg>';
+  const ICON_NEXT='<svg class="i"><use href="#i-next"/></svg>';
 
   const root=document.getElementById("foliaWall");
   const field=document.getElementById("wallField");
@@ -3934,7 +3998,7 @@ var WALL = (function(){
 
 function applyView(){
   document.body.classList.toggle("folia", foliaView);
-  viewToggle.textContent = foliaView ? "≡ 列表" : "◈ 沉浸式";
+  viewToggle.innerHTML = foliaView ? iconSvg('i-menu',16)+" 列表" : iconSvg('i-expand',16)+" 沉浸式";
   syncParticles();
   if(foliaView) WALL.open(); else WALL.close();
 }
@@ -4378,7 +4442,7 @@ async function openDaily(){
   chartDesc.textContent = "为你精选 · 每天更新";
   chartTag.textContent = "DAILY";
   chartTag.style.display = "";
-  chartCover.innerHTML = "✨";
+  chartCover.innerHTML = iconSvg('i-sparkle',38);
   chartCover.style.background = "linear-gradient(135deg,#a78bfa,#7c3aed)";
   songs = daily.slice();
   renderSongs();
