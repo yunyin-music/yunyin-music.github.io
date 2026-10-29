@@ -468,6 +468,8 @@ async function playSong(idx){
   if(window.WALL) window.WALL.onSong();
   // load lyrics
   loadLyrics(s);
+  // 评论预取：播放即后台加载，打开播放页时秒开（延迟1.2s避开音源解析高峰）
+  setTimeout(()=>{ if(songs[currentIdx]===s) loadComments(s); }, 1200);
   // scroll into view
   const row = songListEl.querySelector(`.song-row[data-idx="${idx}"]`);
   if(row) row.scrollIntoView({behavior:"smooth",block:"nearest"});
@@ -1242,6 +1244,26 @@ let ppTab = "lrc";
 let cmtSongId = null;
 let cmtAutoRetries = 0;
 const cmtCache = new Map();
+/* 评论持久缓存（localStorage，30 分钟 TTL，最多保留 24 首）：重听秒开 + 代理限流时仍可显示 */
+const CMT_TTL = 30*60*1000;
+function cmtPersistGet(id){
+  const m = store.get('yy_cmt_cache', null);
+  const e = m && m[String(id)];
+  if(!e || !e.d || Date.now()-e.t > CMT_TTL) return null;
+  return e.d;
+}
+function cmtPersistSet(id, payload){
+  try{
+    const m = store.get('yy_cmt_cache', {}) || {};
+    m[String(id)] = {t:Date.now(), d:payload};
+    const ks = Object.keys(m);
+    if(ks.length > 24){
+      ks.sort((a,b)=>m[a].t-m[b].t);
+      ks.slice(0, ks.length-24).forEach(k=>delete m[k]);
+    }
+    store.set('yy_cmt_cache', m);
+  }catch(e){} // 容量超限等异常静默降级为仅内存缓存
+}
 // 弥散光晕色板（按歌曲 hash 取色，避免跨域取色失败）
 const GLOWS = [
   ["167,139,250","124,58,237"],  // 紫罗兰
@@ -1404,7 +1426,7 @@ function syncParticles(){
   playPage.classList.contains("open") ? ppFx.start() : ppFx.stop();
 }
 
-// 评论多通道：直连（浏览器装CORS扩展时可用）+ 多个公共代理，逐个尝试，8秒超时快速失败
+// 评论多通道：injahow 评论接口（有额度时最快约200ms）+ 直连 + 多个公共代理并行竞速，6秒超时快速失败
 const CMT_PROXIES = [
   {u:(t)=>t, p:(d)=>d},
   {u:(t)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(t)}`, p:(d)=>d},
@@ -1608,6 +1630,7 @@ async function loadComments(song){
   if(cmtSongId === song.id && ppCmtList.dataset.done==="1") return;
   const render = (payload)=>{
     cmtCache.set(song.id, payload);
+    cmtPersistSet(song.id, payload);
     if(cmtSongId !== song.id) return; // 响应回来时已切歌：只入缓存，不覆盖界面
     ppCmtList.innerHTML = buildCmtHtml(payload);
     ppCmtCount.textContent = payload.total ? cmtLike(payload.total) : "";
@@ -1617,13 +1640,16 @@ async function loadComments(song){
     buildDanmaku(song.id, payload.hot);
   };
   if(cmtCache.has(song.id)){ render(cmtCache.get(song.id)); return; }
+  // 持久缓存：30 分钟内重听同一首歌秒开
+  const persisted = cmtPersistGet(song.id);
+  if(persisted){ cmtCache.set(song.id, persisted); render(persisted); return; }
   cmtSongId = song.id;
   ppCmtList.dataset.done = "0";
   ppCmtList.innerHTML = '<div class="lrc-empty">评论加载中...</div>';
   const target = `https://music.163.com/api/v1/resource/comments/R_SO_4_${song.id}?limit=30`;
-  // 并行竞速：所有通道同时发起，取最先成功的一个（单通道超时8秒，总等待≤8秒）
+  // 并行竞速：所有通道同时发起，取最先成功的一个（单通道超时6秒）
   const tryProxy = async (px)=>{
-    const res = await fetchTimeout(px.u(target), 8000);
+    const res = await fetchTimeout(px.u(target), 6000);
     if(!res.ok) throw new Error("http "+res.status);
     const raw = await res.json();
     const data = px.p ? px.p(raw) : raw;
@@ -1632,8 +1658,20 @@ async function loadComments(song){
     if(!hot.length && !list.length) throw new Error("empty");
     return {hot,list,total: (data && typeof data.total==="number") ? data.total : (hot.length+list.length)};
   };
+  // injahow meting 评论通道：自带 CORS，额度未耗尽时远快于公共代理
+  const tryMeting = async ()=>{
+    const res = await fetchTimeout(`${API}?type=comment&id=${song.id}&server=netease`, 5000);
+    if(!res.ok) throw new Error("http "+res.status);
+    const d = await res.json();
+    if(d && d.message && /上限|limit/i.test(String(d.message))) throw new Error("quota");
+    const hot = d && (d.hotComments || d.hot) || [];
+    const list = (d && d.comments) || [];
+    if(!hot.length && !list.length) throw new Error("empty");
+    return {hot:Array.isArray(hot)?hot:[], list:Array.isArray(list)?list:[],
+      total:(d && typeof d.total==="number") ? d.total : (hot.length+list.length)};
+  };
   try{
-    const payload = await Promise.any(CMT_PROXIES.map(tryProxy));
+    const payload = await Promise.any([tryMeting()].concat(CMT_PROXIES.map(tryProxy)));
     cmtAutoRetries = 0;
     render(payload);
     return;
