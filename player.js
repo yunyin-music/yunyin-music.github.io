@@ -70,10 +70,10 @@ async function fetchPlaylist(pid){
     }catch(e){}
     return null;
   })();
-  // 通道二：官方歌单接口（经代理，不受 meting 每日额度影响；n=80 取前 80 首）
+  // 通道二：官方歌单接口（经代理，不受 meting 每日额度影响；n=100 取前 100 首）
   // 代理限流时单次可能很慢，最多等 7 秒就转而使用已并行取回的静态兜底
   const deadline = new Promise(r=>setTimeout(()=>r(null), 7000));
-  const d = await Promise.race([netJSON(`/api/v6/playlist/detail?id=${pid}&n=80`, 7000), deadline]);
+  const d = await Promise.race([netJSON(`/api/v6/playlist/detail?id=${pid}&n=100`, 7000), deadline]);
   const tr = d && d.playlist && d.playlist.tracks;
   if(Array.isArray(tr) && tr.length){
     return tr.map(t=>({
@@ -160,11 +160,18 @@ const CHARTS = [
   { id:"3779629", name:"新歌榜", icon:"i-sparkle", desc:"云音乐最新歌曲热度排行，汇聚近期首发新歌。" },
   { id:"19723756", name:"飙升榜", icon:"i-bolt", desc:"云音乐近 24 小时内播放量涨幅最快歌曲排行。" },
   { id:"2884035", name:"原创榜", icon:"i-music", desc:"云音乐原创歌曲排行，发现独立音乐人的优质作品。" },
-  { id:"2614035974", name:"网红热歌榜", icon:"i-headphone", desc:"全网最火短视频 BGM 与热门网红歌曲合集。" },
-  { id:"71385702", name:"电音榜", icon:"i-sliders", desc:"云音乐电音歌曲排行，感受电子音乐的节拍魅力。" },
+  { id:"6723173524", name:"网络热歌榜", icon:"i-headphone", desc:"全网最火短视频 BGM 与热门网络歌曲排行。" },
+  { id:"1978921795", name:"电音榜", icon:"i-sliders", desc:"网易云电音榜，感受电子音乐的节拍魅力。" },
+  { id:"71385702", name:"ACG榜", icon:"i-image", desc:"动画、游戏、VOCALOID 相关热曲排行。" },
+  { id:"5059642708", name:"国风榜", icon:"i-disc", desc:"古风与国潮音乐排行，听见华夏之声。" },
+  { id:"991319590", name:"中文说唱榜", icon:"i-volume", desc:"中文 Hip-Hop / Rap 歌曲热度排行。" },
+  { id:"5059633707", name:"摇滚榜", icon:"i-bolt", desc:"摇滚乐热度排行，从经典到新兴乐队。" },
+  { id:"5059661515", name:"民谣榜", icon:"i-music", desc:"民谣歌曲热度排行，木吉他与故事的声音。" },
+  { id:"5059644681", name:"日语榜", icon:"i-sparkle", desc:"日语歌曲热度排行，J-POP 前沿速递。" },
+  { id:"745956260", name:"韩语榜", icon:"i-flame", desc:"韩语歌曲热度排行，K-POP 热门追踪。" },
 ];
 
-// 推荐歌单（已验证可用）
+// 推荐歌单（ID 均经官方接口实测有效，2026-10 校验）
 const PLAYLISTS = [
   { id:"2301490995", name:"华语情歌", icon:"i-heart", count:22,  g:"linear-gradient(135deg,#f43f5e,#fb7185)" },
   { id:"7220139227", name:"怀旧金曲", icon:"i-disc", count:50,  g:"linear-gradient(135deg,#4b6cb7,#182848)" },
@@ -172,6 +179,24 @@ const PLAYLISTS = [
   { id:"5314368341", name:"欧美电音", icon:"i-sliders", count:77,  g:"linear-gradient(135deg,#fc466b,#3f5efb)" },
   { id:"508075145",  name:"影视金曲", icon:"i-film", count:82,  g:"linear-gradient(135deg,#f59e0b,#fbbf24)" },
   { id:"2500887487", name:"游戏原声", icon:"i-headphone", count:116, g:"linear-gradient(135deg,#11998e,#38ef7d)" },
+  { id:"2811289513", name:"青春华语", icon:"i-sparkle", count:80,  g:"linear-gradient(135deg,#f6d365,#fda085)" },
+  { id:"17812056379", name:"90后回忆杀", icon:"i-clock", count:100, g:"linear-gradient(135deg,#a18cd1,#fbc2eb)" },
+  { id:"6845706978", name:"怀旧8090", icon:"i-disc", count:151, g:"linear-gradient(135deg,#667eea,#764ba2)" },
+  { id:"13498143641", name:"重返2020", icon:"i-flame", count:101, g:"linear-gradient(135deg,#ff9a9e,#fecfef)" },
+  { id:"13688237649", name:"欧美R&B", icon:"i-heart", count:58,  g:"linear-gradient(135deg,#30cfd0,#330867)" },
+  { id:"8421570200", name:"千禧心碎", icon:"i-clock", count:58,  g:"linear-gradient(135deg,#89f7fe,#66a6ff)" },
+  { id:"6651233748", name:"经典摇滚", icon:"i-bolt", count:30,  g:"linear-gradient(135deg,#f83600,#f9d423)" },
+  { id:"6753971696", name:"夏日摇滚", icon:"i-flame", count:52,  g:"linear-gradient(135deg,#feada6,#f5efef)" },
+  { id:"6666416916", name:"迷幻民谣", icon:"i-music", count:56,  g:"linear-gradient(135deg,#cdb4db,#8093f1)" },
+  { id:"7681103811", name:"漂流民谣", icon:"i-film", count:58,  g:"linear-gradient(135deg,#d4fc79,#96e6a1)" },
+  { id:"3102272704", name:"House派对", icon:"i-sliders", count:30, g:"linear-gradient(135deg,#f5576c,#f093fb)" },
+  { id:"8596533201", name:"中文说唱", icon:"i-volume", count:58,  g:"linear-gradient(135deg,#434343,#000000)" },
+  { id:"7648200657", name:"真实说唱", icon:"i-bolt", count:69,  g:"linear-gradient(135deg,#4facfe,#00f2fe)" },
+  { id:"14428741642", name:"像素游戏音", icon:"i-headphone", count:29, g:"linear-gradient(135deg,#00dbde,#fc00ff)" },
+  { id:"7480824757", name:"深夜独处", icon:"i-clock", count:30,  g:"linear-gradient(135deg,#2c3e50,#4ca1af)" },
+  { id:"2829961453", name:"国风大赏", icon:"i-disc", count:30,  g:"linear-gradient(135deg,#c1440e,#e8b04b)" },
+  { id:"12528734645", name:"久石让精选", icon:"i-image", count:51, g:"linear-gradient(135deg,#8ec5fc,#e0c3fc)" },
+  { id:"9161316200", name:"动漫轻音", icon:"i-sparkle", count:60, g:"linear-gradient(135deg,#fbc2eb,#a6c1ee)" },
 ];
 /* 图标引用统一走 sprite（设计系统里唯一入口） */
 const iconSvg = (id, size) => `<svg class="i i-${size||18}"><use href="#${id}"/></svg>`;
