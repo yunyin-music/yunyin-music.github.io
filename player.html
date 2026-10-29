@@ -303,17 +303,34 @@
   }
   .p-left{display:flex;align-items:center;gap:12px;min-width:0}
   .vinyl{
-    width:52px;height:52px;border-radius:50%;flex-shrink:0;
-    background:
-      radial-gradient(circle at center,#1f1f23 0 6px,#2a2a2f 6px 9px,#1f1f23 9px 13px,#2a2a2f 13px 17px,#1f1f23 17px 22px,#09090b 22px);
-    border:2px solid #000;
-    box-shadow:0 4px 12px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.05),0 0 18px rgba(var(--page-rgb),.35);
+    width:54px;height:54px;border-radius:50%;flex-shrink:0;
     position:relative;overflow:hidden;
+    background:
+      repeating-radial-gradient(circle at center,rgba(255,255,255,.05) 0 1px,rgba(255,255,255,0) 1px 3px),
+      radial-gradient(circle at 32% 26%,#3a3733 0%,#1b1916 46%,#0c0b0a 100%);
+    box-shadow:
+      0 8px 20px -8px rgba(30,24,14,.6),
+      0 0 0 1px rgba(15,13,10,.9),
+      inset 0 1px 0 rgba(255,255,255,.08),
+      0 0 18px rgba(var(--page-rgb),.28);
   }
-  .vinyl img{position:absolute;inset:13px;border-radius:12px;object-fit:cover;box-shadow:0 0 18px rgba(var(--page-rgb),.35)}
-  .vinyl.spinning{animation:spin 8s linear infinite;box-shadow:0 4px 14px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.06),0 0 18px rgba(var(--page-rgb),.35)}
+  /* 封面改为正圆居中：宽度固定、top/left 50% + translate 保证任何尺寸下都不偏 */
+  .vinyl img{
+    position:absolute;top:50%;left:50%;
+    width:calc(100% - 10px);height:calc(100% - 10px);
+    transform:translate(-50%,-50%);
+    border-radius:50%;object-fit:cover;object-position:center;display:block;
+    background:#e9e3d8;
+    box-shadow:0 0 0 1px rgba(255,255,255,.18),0 2px 10px rgba(0,0,0,.45);
+  }
+  .vinyl.spinning{
+    animation:spin 8s linear infinite;
+    box-shadow:0 10px 22px -8px rgba(30,24,14,.65),0 0 0 1px rgba(15,13,10,.9),inset 0 1px 0 rgba(255,255,255,.10),0 0 24px rgba(var(--page-rgb),.40);
+  }
   .p-left .vinyl{cursor:pointer;transition:box-shadow .25s}
-  .p-left .vinyl:hover{box-shadow:0 4px 14px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.1),0 0 22px rgba(var(--page-rgb),.45)}
+  .p-left .vinyl:hover{
+    box-shadow:0 12px 26px -8px rgba(30,24,14,.7),0 0 0 1px rgba(15,13,10,.9),inset 0 1px 0 rgba(255,255,255,.14),0 0 28px rgba(var(--page-rgb),.50);
+  }
   .p-info{min-width:0}
   .p-info .t{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .p-info .a{font-size:11.5px;color:var(--text-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -701,7 +718,7 @@
     .p-center{display:none}
     .volume{display:none}
     .vinyl{width:46px;height:46px}
-    .vinyl img{inset:11px}
+    .vinyl img{width:calc(100% - 8px);height:calc(100% - 8px)}
     .p-right{gap:6px}
     .toast{bottom:calc(92px + env(safe-area-inset-bottom,0px));font-size:12px;max-width:82vw}
 
@@ -1499,7 +1516,7 @@
   .bar:hover .fill{box-shadow:none}
   .vol-btn,.mode-btn,.lyrics-toggle{color:#5e584e}
   .vol-btn:hover,.mode-btn:hover,.lyrics-toggle:hover{color:#151411}
-  .vinyl{border-color:#17140f;box-shadow:0 6px 16px -8px rgba(60,50,30,.7),0 0 0 1px rgba(0,0,0,.35)}
+  .vinyl{box-shadow:0 8px 20px -8px rgba(60,50,30,.55),0 0 0 1px rgba(28,25,20,.28),inset 0 1px 0 rgba(255,255,255,.08),0 0 18px rgba(var(--page-rgb),.22)}
   .p-info .a{color:#8b8478}
 
   /* 悬浮面板：歌词 / 队列 */
@@ -2377,7 +2394,7 @@ async function playSong(idx){
   if(s.pic) pageTintFromCover(s.pic); // 主界面氛围色跟随当前封面主色
   pTitle.textContent = s.name;
   pArtist.textContent = s.artist;
-  pCover.src = s.pic || "";
+  pCover.src = thumbUrl(s.pic, 160); // 小唱片按 3x 屏留足像素，避免缩放发糊
   updatePlayPage(s);
   // 记录历史 / 保存状态 / 更新收藏心 / 系统媒体信息 / 标签页标题
   recordHistory(s);
