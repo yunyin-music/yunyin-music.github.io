@@ -497,15 +497,20 @@
   }
   @keyframes bgdrift{to{transform:translate(5%,-4%) scale(1.12)}}
   .pp-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,11,13,.55),rgba(11,11,13,.85))}
-  .pp-head{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
+  /* 顶栏三栏栅格：左收起按钮 / 中歌名 / 右操作，各自占位，互不重叠 */
+  .pp-head{
+    position:relative;z-index:2;
+    display:grid;grid-template-columns:1fr minmax(0,auto) 1fr;align-items:center;gap:12px;
+    padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06);
+  }
   .pp-collapse{
-    position:absolute;left:14px;top:50%;transform:translateY(-50%);
+    position:relative;justify-self:start;
     background:var(--glass-2);border:none;color:var(--text-2);
-    width:36px;height:36px;border-radius:50%;cursor:pointer;
+    width:36px;height:36px;border-radius:50%;cursor:pointer;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;transition:.2s;
   }
   .pp-collapse:hover{color:var(--text);background:rgba(255,255,255,.1)}
-  .pp-head-info{text-align:center;min-width:0;max-width:70%}
+  .pp-head-info{justify-self:center;text-align:center;min-width:0;max-width:100%}
   .pp-head-info .t{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pp-head-info .a{font-size:12px;color:var(--text-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pp-body{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:14px 24px 22px;min-height:0;overflow:hidden}
@@ -1299,7 +1304,7 @@
   }
 
   /* ---------- 播放页增强：动作按钮 / 频谱 / 悬浮歌词 / 下滑关闭 ---------- */
-  .pp-acts{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .pp-acts{justify-self:end;display:flex;gap:8px;align-items:center}
   .pp-act{
     display:flex;align-items:center;justify-content:center;
     min-width:32px;height:32px;padding:0 9px;border-radius:16px;
