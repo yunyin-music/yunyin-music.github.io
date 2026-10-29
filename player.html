@@ -1963,7 +1963,7 @@ function neteaseOnly(u){
 async function fetchPlaylist(pid){
   // 通道一：meting（网易云）
   try{
-    const res = await fetchTimeout(`${API}?type=playlist&id=${pid}&server=netease`, 6000);
+    const res = await fetchTimeout(`${API}?type=playlist&id=${pid}&server=netease`, 5000);
     const list = res && res.ok ? await res.json() : null;
     if(Array.isArray(list) && list.length && list[0] && list[0].name){
       return list.map(s=>{
@@ -1980,8 +1980,22 @@ async function fetchPlaylist(pid){
       });
     }
   }catch(e){}
-  // 通道二：官方歌单接口（经代理，不受 meting 每日额度影响）
-  const d = await netJSON(`/api/v6/playlist/detail?id=${pid}`, 15000);
+  // 通道三：同源静态兜底（与通道二并行发起，代理被限流时也能展示榜单）
+  const fb = (async()=>{
+    try{
+      const r = await fetchTimeout("./chart-fallback.json?v=1", 6000);
+      if(r && r.ok){
+        const d2 = await r.json();
+        const arr = d2 && d2[pid];
+        if(Array.isArray(arr) && arr.length) return arr;
+      }
+    }catch(e){}
+    return null;
+  })();
+  // 通道二：官方歌单接口（经代理，不受 meting 每日额度影响；n=80 取前 80 首）
+  // 代理限流时单次可能很慢，最多等 7 秒就转而使用已并行取回的静态兜底
+  const deadline = new Promise(r=>setTimeout(()=>r(null), 7000));
+  const d = await Promise.race([netJSON(`/api/v6/playlist/detail?id=${pid}&n=80`, 7000), deadline]);
   const tr = d && d.playlist && d.playlist.tracks;
   if(Array.isArray(tr) && tr.length){
     return tr.map(t=>({
@@ -1995,19 +2009,21 @@ async function fetchPlaylist(pid){
       dur:t.dt||0
     }));
   }
+  const fbList = await fb;
+  if(fbList) return fbList;
   return null;
 }
 /* 直链解析（vkeys 网易云接口，自带 CORS，返回网易 CDN 直链）：快且不受 meting 额度影响 */
 async function vkeysUrl(id){
   try{
-    const r = await fetchTimeout(`https://api.vkeys.cn/v2/music/netease?id=${id}`, 8000);
+    const r = await fetchTimeout(`https://api.vkeys.cn/v2/music/netease?id=${id}`, 4000);
     if(!r || !r.ok) return "";
     const d = await r.json();
     const u = d && d.data && d.data.url;
     return u ? neteaseOnly(u) : "";
   }catch(e){ return ""; }
 }
-// 播放地址解析顺序：vkeys 直链 → 官方 enhance（经代理）→ meting → outer 兼容地址
+// 播放地址解析顺序：vkeys 直链 → outer 兼容地址（免代理、免费曲秒开）→ 官方 enhance（经代理，重试时用）
 async function ensurePlayUrl(s, force){
   let id = String(s.id || metingId(s.url) || "");
   if(!id && s.name) id = await lookupSongId(s); // 旧收藏/历史缺少 id 时按歌名补
@@ -2018,17 +2034,20 @@ async function ensurePlayUrl(s, force){
   // 1) vkeys 直链（网易 CDN，约 300ms 返回）
   const vu = await vkeysUrl(id);
   if(vu){ audioUrlCache.set(id, {u:vu, t:Date.now()}); return vu; }
-  // 2) 官方 enhance 接口（经代理）：多数歌曲可拿到直链
-  const d = await netJSON(`/api/song/enhance/player/url?id=${id}&ids=%5B${id}%5D&br=128000`, 12000);
+  // 2) outer 兼容地址：免费曲目直接可用（audio 播放跨域无需 CORS），VIP 曲目会在播放失败后重试
+  const outer = `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
+  if(!s._retried){
+    if(s.url && /api\.injahow\.cn/.test(s.url)) return s.url;
+    return outer;
+  }
+  // 3) 重试时才走官方 enhance（经代理，较慢）
+  const d = await netJSON(`/api/song/enhance/player/url?id=${id}&ids=%5B${id}%5D&br=128000`, 5000);
   const u = d && d.data && d.data[0] && d.data[0].url;
   if(u){
     const gu = neteaseOnly(u);
     if(gu){ audioUrlCache.set(id, {u:gu, t:Date.now()}); return gu; }
   }
-  // 3) meting 中转（额度恢复时可用；链接 302 实时签发）
-  if(s.url && /api\.injahow\.cn/.test(s.url)) return s.url;
-  // 4) outer 兼容地址
-  return `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
+  return outer;
 }
 /* 旧数据（收藏/最近播放）可能没有歌曲 id：按歌名+歌手走 CORS 代理搜索补齐 */
 async function lookupSongId(s){
@@ -2385,6 +2404,7 @@ async function playSong(idx){
   audio.src = url;
   audio.play().then(()=>{
     failStreak = 0;
+    s._retried = 0;
     setPlaying(true);
     listFx.recolor(); ppFx.recolor(); // Folia 粒子随歌曲色板换色
     preloadNext(idx); // 汽水式无缝切歌：提前取好下一首的播放链接
