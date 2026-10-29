@@ -11,7 +11,7 @@
 <meta name="keywords" content="在线音乐播放器,免费听歌,热歌榜,网红热歌,网易云音乐,在线听歌,音乐排行榜,飙升榜,新歌榜,免费音乐播放器" />
 <meta name="author" content="云音 Cloud Music" />
 <meta name="robots" content="index, follow" />
-<meta name="theme-color" content="#09090b" />
+<meta name="theme-color" content="#f2efe9" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
@@ -55,8 +55,8 @@
   body{
     font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Segoe UI",system-ui,sans-serif;
     min-height:100vh;
-    background:#09090b;
-    color:#f4f4f5;
+    background:#f2efe9;
+    color:#151411;
     display:flex;align-items:center;justify-content:center;
     overflow:hidden;
     position:relative;
@@ -66,65 +66,66 @@
   .bg{
     position:fixed;inset:0;z-index:-2;
     background:
-      radial-gradient(900px 700px at 18% 25%, rgba(167,139,250,.16), transparent 60%),
-      radial-gradient(800px 700px at 82% 75%, rgba(124,58,237,.12), transparent 60%),
-      linear-gradient(160deg,#09090b,#0e0e10,#09090b);
+      radial-gradient(900px 700px at 18% 25%, rgba(233,180,140,.34), transparent 60%),
+      radial-gradient(800px 700px at 82% 78%, rgba(193,68,14,.08), transparent 62%),
+      radial-gradient(700px 600px at 70% 10%, rgba(122,132,110,.10), transparent 64%),
+      linear-gradient(160deg,#f7f4ee,#f2efe9,#ebe6dc);
   }
   .bg::after{
-    content:"";position:fixed;inset:0;z-index:-1;opacity:.035;
+    content:"";position:fixed;inset:0;z-index:-1;opacity:.05;mix-blend-mode:multiply;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   }
   .card{
     text-align:center;
     padding:52px 64px;
-    background:rgba(255,255,255,.035);
-    border:1px solid rgba(255,255,255,.08);
+    background:rgba(253,251,247,.82);
+    border:1px solid #e2ddd3;
     border-radius:24px;
-    backdrop-filter:blur(28px) saturate(1.2);
-    -webkit-backdrop-filter:blur(28px) saturate(1.2);
-    box-shadow:0 24px 70px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06);
+    backdrop-filter:blur(28px) saturate(1.1);
+    -webkit-backdrop-filter:blur(28px) saturate(1.1);
+    box-shadow:0 30px 70px -38px rgba(60,50,30,.6),inset 0 1px 0 #fff;
     animation:fadeUp .8s cubic-bezier(.2,.8,.2,1);
   }
   @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
   .logo{
     width:82px;height:82px;border-radius:19px;margin:0 auto 26px;
     overflow:hidden;
-    box-shadow:0 12px 36px rgba(167,139,250,.4);
+    box-shadow:0 14px 34px -18px rgba(60,50,30,.65),0 0 0 1px #e2ddd3;
     animation:float 3.5s ease-in-out infinite;
   }
   .logo svg{display:block;width:100%;height:100%}
   @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-  h1{font-size:34px;font-weight:800;letter-spacing:3px;margin-bottom:8px}
-  h1 span{color:#a78bfa}
-  .sub{color:#6b6b73;font-size:12px;letter-spacing:4px;margin-bottom:32px;font-weight:500}
+  h1{font-family:"Songti SC","Source Han Serif SC",Georgia,serif;font-size:34px;font-weight:600;letter-spacing:4px;margin-bottom:8px}
+  h1 span{color:#c1440e}
+  .sub{color:#8b8478;font-size:12px;letter-spacing:4px;margin-bottom:32px;font-weight:500}
   .tags{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:36px}
   .tag{
-    font-size:12px;color:#c4b5fd;
-    background:rgba(167,139,250,.1);
+    font-size:12px;color:#a4512a;
+    background:#fbf3ee;
     padding:5px 14px;border-radius:20px;
-    border:1px solid rgba(167,139,250,.2);
+    border:1px solid rgba(193,68,14,.18);
     transition:.2s;
   }
-  .tag:hover{background:rgba(167,139,250,.16);border-color:rgba(167,139,250,.35)}
+  .tag:hover{background:#f7e8de;border-color:rgba(193,68,14,.34)}
   .enter-btn{
     display:inline-flex;align-items:center;gap:10px;
-    background:linear-gradient(135deg,#a78bfa,#c4b5fd);
-    color:#0a0a0b;font-weight:700;font-size:16px;
+    background:#1b1a17;
+    color:#f7f5f0;font-weight:700;font-size:16px;
     border:none;padding:16px 46px;border-radius:50px;cursor:pointer;
-    box-shadow:0 12px 36px rgba(167,139,250,.4),inset 0 1px 0 rgba(255,255,255,.3);
+    box-shadow:0 18px 36px -18px rgba(60,50,30,.8),inset 0 1px 0 rgba(255,255,255,.14);
     transition:.2s cubic-bezier(.4,0,.2,1);text-decoration:none;
   }
-  .enter-btn:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 16px 46px rgba(167,139,250,.55),inset 0 1px 0 rgba(255,255,255,.35)}
+  .enter-btn:hover{transform:translateY(-2px) scale(1.02);background:#241f19;box-shadow:0 22px 44px -18px rgba(60,50,30,.9),inset 0 1px 0 rgba(255,255,255,.2)}
   .enter-btn svg{width:20px;height:20px}
-  .note{margin-top:26px;font-size:11px;color:#5f5f66;line-height:1.7}
-  .note a{color:#a78bfa;text-decoration:none}
+  .note{margin-top:26px;font-size:11px;color:#8b8478;line-height:1.7}
+  .note a{color:#c1440e;text-decoration:none}
   .vinyl-deco{
     position:absolute;width:200px;height:200px;border-radius:50%;
     background:
-      radial-gradient(circle at center,#1f1f23 0 22px,#2a2a2f 22px 30px,#1f1f23 30px 44px,#2a2a2f 44px 58px,#1f1f23 58px 74px,#09090b 74px);
-    border:3px solid #000;opacity:.35;
+      radial-gradient(circle at center,#e7e0d2 0 22px,#dbd3c2 22px 30px,#e7e0d2 30px 44px,#dbd3c2 44px 58px,#e7e0d2 58px 74px,#efe9df 74px);
+    border:3px solid #cdc5b4;opacity:.55;
     animation:spin 14s linear infinite;
-    box-shadow:0 0 40px rgba(167,139,250,.08);
+    box-shadow:0 0 40px rgba(193,68,14,.06);
   }
   .vinyl-deco.left{top:10%;left:8%}
   .vinyl-deco.right{bottom:10%;right:8%;animation-direction:reverse}
@@ -161,11 +162,11 @@
   <h1>云<span>音</span></h1>
   <p class="sub">CLOUD MUSIC PLAYER</p>
   <div class="tags">
-    <span class="tag">🔥 热歌榜</span>
-    <span class="tag">🚀 飙升榜</span>
-    <span class="tag">📱 网红热歌</span>
-    <span class="tag">🎛️ 电音榜</span>
-    <span class="tag">✨ 新歌榜</span>
+    <span class="tag">热歌榜</span>
+    <span class="tag">飙升榜</span>
+    <span class="tag">网红热歌</span>
+    <span class="tag">电音榜</span>
+    <span class="tag">新歌榜</span>
   </div>
   <a class="enter-btn" href="player.html">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
