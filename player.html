@@ -27,6 +27,7 @@
 <link rel="apple-touch-icon" href="icon-192.png" />
 <!-- 预连接：提前完成 API 与图片/音频 CDN 的 DNS+TLS 握手，首屏请求提速 -->
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin />
+<link rel="preconnect" href="https://api.vkeys.cn" crossorigin />
 <link rel="preconnect" href="https://p1.music.126.net" />
 <link rel="preconnect" href="https://p2.music.126.net" />
 <link rel="dns-prefetch" href="https://p3.music.126.net" />
@@ -1921,6 +1922,35 @@
 <script>
 const API = "https://api.injahow.cn/meting/";
 
+/* ---------- 网易云官方 API（经 CORS 代理直取，作为 meting 的独立兜底通道） ----------
+   meting 公共实例有每日调用上限（会返回 {"message":"请求次数已达上限"}），
+   官方 API 走代理可绕开该限制，保证榜单/歌词/音源都有第二条路 */
+const NET = "https://music.163.com";
+const NET_PROXIES = [
+  (u)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  (u)=>`https://cors.eu.org/${u}`,
+  (u)=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+];
+async function netJSON(path, ms){
+  const target = NET + path;
+  for(const px of NET_PROXIES){
+    try{
+      const r = await fetchTimeout(px(target), ms||15000);
+      if(!r || !r.ok) continue;
+      const d = await r.json();
+      if(d && (d.code===200 || d.status===200 || d.playlist || d.result || d.data || d.songs || d.lrc)) return d;
+    }catch(e){}
+  }
+  return null;
+}
+/* 播放地址短时缓存：官方下发的链接带过期时间（约 20 分钟），10 分钟内复用 */
+const audioUrlCache = new Map();
+function resetAudioUrlCache(id){
+  if(id) audioUrlCache.delete(String(id));
+  else audioUrlCache.clear();
+}
+
+
 /* ---------- Data layer: 网易云音源（meting 中转，全部请求锁定 server=netease） ---------- */
 /* meting 列表项不带 id 字段，从它的 url 里反解歌曲 id */
 function metingId(u){ const m=/(?:\?|&)id=(\d+)/.exec(u||""); return m?m[1]:""; }
@@ -1931,10 +1961,10 @@ function neteaseOnly(u){
   return u.replace(/^http:/,"https:");
 }
 async function fetchPlaylist(pid){
-  // meting（网易云）
+  // 通道一：meting（网易云）
   try{
-    const res = await fetch(`${API}?type=playlist&id=${pid}&server=netease`, {cache:"no-store"});
-    const list = await res.json();
+    const res = await fetchTimeout(`${API}?type=playlist&id=${pid}&server=netease`, 6000);
+    const list = res && res.ok ? await res.json() : null;
     if(Array.isArray(list) && list.length && list[0] && list[0].name){
       return list.map(s=>{
         const id = String(s.id || metingId(s.url) || "");
@@ -1950,15 +1980,55 @@ async function fetchPlaylist(pid){
       });
     }
   }catch(e){}
+  // 通道二：官方歌单接口（经代理，不受 meting 每日额度影响）
+  const d = await netJSON(`/api/v6/playlist/detail?id=${pid}`, 15000);
+  const tr = d && d.playlist && d.playlist.tracks;
+  if(Array.isArray(tr) && tr.length){
+    return tr.map(t=>({
+      id:String(t.id),
+      name:t.name||"未知歌曲",
+      artist:(t.ar||[]).map(a=>a.name).join(" / ")||"未知歌手",
+      pic:t.al && t.al.picUrl ? (t.al.picUrl+"?param=200y200").replace(/^http:/,"https:") : "",
+      url:"",
+      lrc:"",
+      album:(t.al && t.al.name)||"",
+      dur:t.dt||0
+    }));
+  }
   return null;
 }
-// 链接策略：meting 链接是 302 实时签发、永不过期，直接用网易云音源
-async function ensurePlayUrl(s){
-  if(s.url && s.url.indexOf("api.injahow.cn")>=0) return s.url;
+/* 直链解析（vkeys 网易云接口，自带 CORS，返回网易 CDN 直链）：快且不受 meting 额度影响 */
+async function vkeysUrl(id){
+  try{
+    const r = await fetchTimeout(`https://api.vkeys.cn/v2/music/netease?id=${id}`, 8000);
+    if(!r || !r.ok) return "";
+    const d = await r.json();
+    const u = d && d.data && d.data.url;
+    return u ? neteaseOnly(u) : "";
+  }catch(e){ return ""; }
+}
+// 播放地址解析顺序：vkeys 直链 → 官方 enhance（经代理）→ meting → outer 兼容地址
+async function ensurePlayUrl(s, force){
   let id = String(s.id || metingId(s.url) || "");
   if(!id && s.name) id = await lookupSongId(s); // 旧收藏/历史缺少 id 时按歌名补
-  if(!id) return s.url || "";
-  return `${API}?type=url&id=${id}&server=netease`;
+  if(!id) return neteaseOnly(s.url) || "";
+  if(force) resetAudioUrlCache(id);
+  const hit = audioUrlCache.get(id);
+  if(hit && Date.now()-hit.t < 10*60*1000) return hit.u;
+  // 1) vkeys 直链（网易 CDN，约 300ms 返回）
+  const vu = await vkeysUrl(id);
+  if(vu){ audioUrlCache.set(id, {u:vu, t:Date.now()}); return vu; }
+  // 2) 官方 enhance 接口（经代理）：多数歌曲可拿到直链
+  const d = await netJSON(`/api/song/enhance/player/url?id=${id}&ids=%5B${id}%5D&br=128000`, 12000);
+  const u = d && d.data && d.data[0] && d.data[0].url;
+  if(u){
+    const gu = neteaseOnly(u);
+    if(gu){ audioUrlCache.set(id, {u:gu, t:Date.now()}); return gu; }
+  }
+  // 3) meting 中转（额度恢复时可用；链接 302 实时签发）
+  if(s.url && /api\.injahow\.cn/.test(s.url)) return s.url;
+  // 4) outer 兼容地址
+  return `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
 }
 /* 旧数据（收藏/最近播放）可能没有歌曲 id：按歌名+歌手走 CORS 代理搜索补齐 */
 async function lookupSongId(s){
@@ -2140,14 +2210,14 @@ async function loadChart(idx){
     if(window.WALL && window.WALL.pending) window.WALL.pending();
   }
 
-  // 接口偶发超时/空返回：自动重试 2 次（间隔 0.9s、1.8s），仍失败才提示
+  // 接口偶发超时/空返回：再补一次（allorigins 等代理首次较慢，给足时间）
   let list = null;
-  for(let attempt=0; attempt<3 && !list; attempt++){
+  for(let attempt=0; attempt<2 && !list; attempt++){
     try{
       const l = await fetchPlaylist(c.id);
       if(l && l.length) list = l;
     }catch(e){}
-    if(!list && attempt<2) await new Promise(r=>setTimeout(r, 900*(attempt+1)));
+    if(!list && attempt<1) await new Promise(r=>setTimeout(r, 600));
   }
 
   if(list){
@@ -2160,10 +2230,17 @@ async function loadChart(idx){
     }
   }else if(!fresh && currentChart===idx){
     // 有旧缓存兜底就不报错；仅完全无数据时提示（骨架墙保留，点重试再拉一次）
-    songListEl.innerHTML = `<div class="empty"><svg class="i i-38"><use href="#i-refresh"/></svg><p>加载失败，请稍后重试</p><button class="btn-retry" id="retryBtn">重新加载</button></div>`;
-    const rb = document.getElementById("retryBtn");
-    if(rb) rb.addEventListener("click", ()=>loadChart(idx));
-    toast("网络加载失败，已自动重试");
+    if(cached && Array.isArray(cached.list) && cached.list.length){
+      songs = cached.list;
+      renderSongs();
+      tryRestore();
+      toast("接口繁忙，已展示缓存的榜单");
+    }else{
+      songListEl.innerHTML = `<div class="empty"><svg class="i i-38"><use href="#i-refresh"/></svg><p>加载失败，请稍后重试</p><button class="btn-retry" id="retryBtn">重新加载</button></div>`;
+      const rb = document.getElementById("retryBtn");
+      if(rb) rb.addEventListener("click", ()=>loadChart(idx));
+      toast("网络加载失败，已自动重试");
+    }
   }
 }
 
@@ -2328,6 +2405,7 @@ function recoverPlayback(){
     s._retried = 1;
     s.id = s.id || metingId(s.url);
     s.url = "";
+    resetAudioUrlCache(s.id); // 丢弃已失效的直链，强制重新解析
     setPlaying(false);
     setTimeout(()=>{ if(currentIdx>=0) playSong(currentIdx); }, 260);
     return;
@@ -2586,7 +2664,25 @@ async function loadLyrics(song){
       if(t0 && t0.trim().startsWith("[")) text = t0;
     }catch(e){}
   }
+  // vkeys 歌词接口（自带 CORS，最快）
+  if(!text){
+    try{
+      const r = await fetchTimeout(`https://api.vkeys.cn/v2/music/netease/lyric?id=${song.id}`, 8000);
+      if(r && r.ok){
+        const d = await r.json();
+        const t = d && d.data && d.data.lrc;
+        if(t && t.trim().startsWith("[")) text = t;
+      }
+    }catch(e){}
+  }
   // injahow 兜底
+  if(!text){
+    try{
+      const d = await netJSON(`/api/song/lyric?id=${song.id}&lv=1&kv=1&tv=-1`, 7000);
+      const t3 = d && d.lrc && d.lrc.lyric;
+      if(t3 && t3.trim().startsWith("[")) text = t3;
+    }catch(e){}
+  }
   if(!text){
     try{
       const res2 = await fetch(`${API}?type=lrc&id=${song.id}&server=netease`, {cache:"no-store"});
