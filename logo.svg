@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="云音 Logo">
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.42" r="0.78">
+      <stop offset="0" stop-color="#1b1a21"/>
+      <stop offset="1" stop-color="#09090b"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.52" r="0.58">
+      <stop offset="0" stop-color="#a78bfa" stop-opacity=".40"/>
+      <stop offset="0.65" stop-color="#7c3aed" stop-opacity=".13"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cloud" x1="0.15" y1="0" x2="0.75" y2="1">
+      <stop offset="0" stop-color="#efeaff"/>
+      <stop offset="0.34" stop-color="#c4b5fd"/>
+      <stop offset="0.72" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".55"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="cloudMask">
+      <g fill="#fff">
+        <circle cx="168" cy="274" r="86"/>
+        <circle cx="256" cy="228" r="104"/>
+        <circle cx="346" cy="274" r="80"/>
+        <rect x="112" y="272" width="290" height="88" rx="44"/>
+      </g>
+      <g fill="#000">
+        <circle cx="216" cy="302" r="31"/>
+        <rect x="234" y="197" width="16" height="110" rx="8"/>
+        <path d="M250 200 L 289 234 L 250 258 Z"/>
+      </g>
+    </mask>
+  </defs>
+
+  <rect width="512" height="512" rx="115" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="115" fill="url(#halo)"/>
+
+  <g mask="url(#cloudMask)">
+    <rect width="512" height="512" fill="url(#cloud)"/>
+    <ellipse cx="205" cy="190" rx="146" ry="86" fill="#ffffff" opacity=".16"/>
+  </g>
+
+  <rect width="512" height="512" rx="115" fill="none" stroke="url(#edge)" stroke-width="2" opacity=".5"/>
+</svg>
