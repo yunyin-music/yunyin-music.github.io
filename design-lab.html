@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>云音 · 界面方案预览</title>
+<style>
+  :root{
+    --lab-bg:#08080a;
+    --lab-panel:#101013;
+    --lab-line:rgba(255,255,255,.07);
+    --lab-text:#e9e9ec;
+    --lab-muted:#7c7c86;
+    --lab-accent:#c4b5fd;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--lab-bg);color:var(--lab-text);
+    font-family:"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .lab{max-width:1360px;margin:0 auto;padding:34px 28px 80px}
+
+  /* ---------- 实验室外壳 ---------- */
+  .lab-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;
+    padding-bottom:22px;border-bottom:1px solid var(--lab-line)}
+  .lab-head h1{font-family:"Songti SC","Source Han Serif SC",Georgia,serif;
+    font-size:27px;font-weight:600;letter-spacing:.5px}
+  .lab-head h1 span{color:var(--lab-accent)}
+  .lab-head p{margin-top:7px;font-size:12.5px;color:var(--lab-muted);letter-spacing:.3px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tab{padding:9px 17px;border-radius:9px;border:1px solid var(--lab-line);
+    background:transparent;color:var(--lab-muted);font-size:12.5px;cursor:pointer;
+    font-family:inherit;transition:.22s cubic-bezier(.4,0,.2,1);letter-spacing:.4px}
+  .tab:hover{color:var(--lab-text);border-color:rgba(255,255,255,.16)}
+  .tab.on{background:#fff;color:#0a0a0b;border-color:#fff;font-weight:600}
+
+  /* ---------- 方案说明 ---------- */
+  .notes{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:26px 0 18px}
+  .note{padding:15px 16px;border-radius:11px;border:1px solid var(--lab-line);background:var(--lab-panel);
+    cursor:pointer;transition:.25s cubic-bezier(.4,0,.2,1)}
+  .note:hover{border-color:rgba(255,255,255,.18);transform:translateY(-2px)}
+  .note.on{border-color:rgba(196,181,253,.5);background:rgba(196,181,253,.06)}
+  .note b{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px;letter-spacing:.4px}
+  .note small{font-size:11.5px;line-height:1.65;color:var(--lab-muted);display:block}
+  .note i{display:inline-block;font-style:normal;font-size:10px;letter-spacing:1px;color:var(--lab-muted);
+    border:1px solid var(--lab-line);padding:2px 7px;border-radius:20px;margin-top:9px}
+  .note.on i{color:var(--lab-accent);border-color:rgba(196,181,253,.35)}
+
+  /* ---------- 舞台 ---------- */
+  .stage-wrap{position:relative}
+  .stage{display:none}
+  .stage.on{display:block;animation:rise .4s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  /* 图标统一描边规格（不含 logo 图形） */
+  .ic svg, .ic-strip svg, .mk-search svg, .mk-nav svg, .mk-lib svg,
+  .mk-btn svg, .mk-ghost svg, .mk-ctrl svg, .mk-play svg, .mk-right svg{
+    fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+  }
+
+  /* ---------- 通用 mock 骨架 ---------- */
+  .mock{display:grid;grid-template-columns:var(--sbw,238px) 1fr;grid-template-rows:1fr auto;
+    height:626px;border-radius:var(--mk-radius,16px);overflow:hidden;position:relative;
+    font-size:13px;line-height:1.45}
+  .mk-side{grid-row:1;display:flex;flex-direction:column;gap:15px;padding:20px 15px;overflow:hidden}
+  .mk-main{grid-row:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+  .mk-bar{grid-column:1/-1;grid-row:2}
+
+  .mk-brand{display:flex;align-items:center;gap:10px;padding:2px 4px}
+  .mk-mark{width:36px;height:36px;border-radius:9px;flex:0 0 auto;overflow:hidden}
+  .mk-mark svg{display:block;width:100%;height:100%}
+  .mk-brand b{font-size:16px;font-weight:700;letter-spacing:1px;display:block;line-height:1.2}
+  .mk-brand small{display:block;font-size:8.5px;letter-spacing:2.6px;opacity:.42;margin-top:2px}
+
+  .mk-search{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--mk-radius-sm,9px);
+    font-size:12px;color:var(--mk-search-fg,inherit);opacity:var(--mk-search-op,.62)}
+  .mk-search svg{width:14px;height:14px;opacity:.7;flex:0 0 auto}
+
+  .mk-nav,.mk-lib{display:flex;flex-direction:column;gap:2px}
+  .mk-nav a,.mk-lib a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--mk-radius-sm,9px);
+    font-size:12.5px;text-decoration:none;color:var(--mk-nav-fg,inherit);cursor:pointer;position:relative}
+  .mk-nav a svg,.mk-lib a svg{width:15px;height:15px;flex:0 0 auto;opacity:.72}
+  .mk-nav a em,.mk-lib a em{margin-left:auto;font-style:normal;font-size:10px;opacity:.36;font-variant-numeric:tabular-nums}
+  .mk-nav a.on{color:var(--mk-on-fg,inherit);font-weight:600}
+  .mk-nav a.on svg{opacity:1}
+  .mk-lab{font-size:9px;letter-spacing:2.4px;opacity:.34;padding:12px 10px 4px}
+
+  .mk-hero{display:flex;align-items:center;gap:var(--mk-hero-gap,20px);padding:var(--mk-hero-pad,26px 28px 20px);
+    position:relative;flex:0 0 auto}
+  .mk-cover{width:var(--mk-cover,112px);height:var(--mk-cover,112px);border-radius:var(--mk-cover-r,14px);
+    flex:0 0 auto;position:relative;overflow:hidden;
+    background:linear-gradient(145deg,#3a3a4e,#1b1b26 45%,#2a2338)}
+  .mk-cover::after{content:"";position:absolute;inset:0;
+    background:radial-gradient(circle at 30% 26%,rgba(196,181,253,.5),transparent 58%)}
+  .mk-meta{flex:1;min-width:0}
+  .mk-tag{display:inline-block;font-size:9px;letter-spacing:2.2px;padding:3px 8px;border-radius:20px;
+    color:var(--mk-tag-fg,#c4b5fd);background:var(--mk-tag-bg,rgba(167,139,250,.14));margin-bottom:9px}
+  .mk-meta h2{font-size:var(--mk-title,26px);font-weight:var(--mk-title-w,800);
+    letter-spacing:var(--mk-title-ls,.5px);line-height:1.15;
+    font-family:var(--mk-font-display,inherit);margin-bottom:7px}
+  .mk-meta p{font-size:11.5px;opacity:.55;max-width:430px;line-height:1.6}
+  .mk-actions{display:flex;align-items:center;gap:9px;flex:0 0 auto;align-self:flex-end}
+  .mk-btn{display:inline-flex;align-items:center;gap:7px;padding:10px 19px;border:none;border-radius:var(--mk-btn-r,24px);
+    font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;
+    background:var(--mk-btn-bg,#c4b5fd);color:var(--mk-btn-fg,#0a0a0b)}
+  .mk-btn svg{width:13px;height:13px}
+  .mk-ghost{background:transparent;border:1px solid var(--mk-ghost-bd,rgba(255,255,255,.14));
+    color:var(--mk-ghost-fg,inherit);font-weight:500}
+  .mk-ghost svg{width:13px;height:13px;opacity:.7}
+
+  .mk-list{flex:1;overflow:hidden;padding:0 var(--mk-list-pad,20px) 8px;display:flex;flex-direction:column;
+    gap:var(--mk-row-gap,2px);min-height:0}
+  .mk-row{display:grid;grid-template-columns:var(--mk-cols,34px 1fr 118px 62px);align-items:center;
+    gap:12px;padding:var(--mk-row-pad,10px 12px);border-radius:var(--mk-row-r,9px);
+    position:relative;cursor:pointer}
+  .mk-row .n{font-size:11px;opacity:.4;font-variant-numeric:tabular-nums;letter-spacing:.5px}
+  .mk-row .t{display:flex;align-items:baseline;gap:8px;min-width:0}
+  .mk-row .t b{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mk-row .t em{font-style:normal;font-size:10.5px;opacity:.45;white-space:nowrap}
+  .mk-row .a{font-size:10.5px;opacity:.38;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mk-row .d{font-size:10.5px;opacity:.4;text-align:right;font-variant-numeric:tabular-nums}
+  .mk-row.playing .t b{font-weight:600}
+  .mk-row .eq{display:inline-flex;align-items:flex-end;gap:2px;height:11px;margin-right:2px}
+  .mk-row .eq i{width:2px;border-radius:1px;background:var(--mk-eq,#c4b5fd);display:block}
+  .mk-row .eq i:nth-child(1){height:6px}
+  .mk-row .eq i:nth-child(2){height:11px}
+  .mk-row .eq i:nth-child(3){height:4px}
+
+  /* 播放条（通用结构，各方案覆写外观） */
+  .mk-bar{position:relative;display:flex;flex-direction:column}
+  .mk-prog{height:2px;background:var(--mk-prog-bg,rgba(255,255,255,.08));position:relative}
+  .mk-prog i{position:absolute;left:0;top:0;bottom:0;width:34%;background:var(--mk-prog-fg,#c4b5fd)}
+  .mk-bar-in{display:flex;align-items:center;gap:16px;padding:var(--mk-bar-pad,13px 22px);
+    background:var(--mk-bar-bg,transparent)}
+  .mk-src{display:flex;align-items:center;gap:10px;min-width:0;flex:0 1 230px}
+  .mk-mini{width:38px;height:38px;border-radius:var(--mk-mini-r,10px);flex:0 0 auto;
+    background:linear-gradient(145deg,#3a3a4e,#1b1b26 55%,#2a2338);position:relative;overflow:hidden}
+  .mk-mini::after{content:"";position:absolute;inset:0;
+    background:radial-gradient(circle at 32% 28%,rgba(196,181,253,.45),transparent 60%)}
+  .mk-src b{font-size:12.5px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mk-src small{font-size:10px;opacity:.42;display:block;margin-top:2px}
+  .mk-ctrl{display:flex;align-items:center;gap:var(--mk-ctrl-gap,18px);margin:0 auto}
+  .mk-ctrl>svg{width:17px;height:17px;opacity:.5;cursor:pointer}
+  .mk-play{width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;flex:0 0 auto;
+    background:var(--mk-play-bg,#c4b5fd);color:var(--mk-play-fg,#0a0a0b)}
+  .mk-play svg{width:15px;height:15px}
+  .mk-right{display:flex;align-items:center;gap:14px;flex:0 1 200px;justify-content:flex-end}
+  .mk-right svg{width:16px;height:16px;opacity:.45;cursor:pointer}
+
+  /* ================= 方案 A · 极简黑胶 ================= */
+  .vA{
+    --sbw:224px;--mk-radius:0px;--mk-radius-sm:6px;--mk-cover:104px;--mk-cover-r:3px;
+    --mk-title:27px;--mk-title-w:600;--mk-title-ls:.6px;--mk-btn-r:6px;
+    --mk-cols:38px 1fr 110px 56px;--mk-row-pad:11px 6px;--mk-row-r:0px;--mk-row-gap:0px;--mk-list-pad:12px;
+    --mk-hero-pad:26px 30px 18px;--mk-hero-gap:22px;
+    --mk-font-display:"Songti SC","Source Han Serif SC",Georgia,serif;
+    background:#0b0b0c;color:#f1f1ef;
+  }
+  .vA .mk-side{background:#0b0b0c;border-right:1px solid rgba(255,255,255,.055)}
+  .vA .mk-brand b{font-family:"Songti SC",Georgia,serif;font-weight:600;font-size:17px;letter-spacing:2px}
+  .vA .mk-search{background:#141416;--mk-search-op:1;color:#77777e;border-radius:6px}
+  .vA .mk-nav a{color:#9a9aa1;padding:8px 8px}
+  .vA .mk-nav a:hover{background:rgba(255,255,255,.035);color:#e8e8e6}
+  .vA .mk-nav a.on{color:#f1f1ef}
+  .vA .mk-nav a.on::before{content:"";position:absolute;left:-15px;top:7px;bottom:7px;width:2px;background:#c4b5fd}
+  .vA .mk-lib a{color:#9a9aa1;padding:8px 8px}
+  .vA .mk-lab{border-top:1px solid rgba(255,255,255,.055);margin-top:auto;padding-top:16px}
+  .vA .mk-main{border-left:0}
+  .vA .mk-cover{box-shadow:0 0 0 1px rgba(255,255,255,.07)}
+  .vA .mk-meta p{opacity:.42}
+  .vA .mk-tag{background:transparent;color:#8f8f97;border:1px solid rgba(255,255,255,.12);
+    letter-spacing:2.6px;padding:3px 8px}
+  .vA .mk-btn{background:transparent;color:#f1f1ef;border:1px solid rgba(255,255,255,.16);
+    border-radius:6px;font-weight:500}
+  .vA .mk-list{border-top:1px solid rgba(255,255,255,.055)}
+  .vA .mk-row{border-bottom:1px solid rgba(255,255,255,.04)}
+  .vA .mk-row:hover{background:rgba(255,255,255,.028)}
+  .vA .mk-row .n{font-family:"SF Mono",ui-monospace,monospace;opacity:.3}
+  .vA .mk-row.playing{background:rgba(255,255,255,.03)}
+  .vA .mk-row.playing .n{color:#c4b5fd;opacity:1}
+  .vA .mk-bar{border-top:1px solid rgba(255,255,255,.07);background:#0b0b0c}
+  .vA .mk-prog{height:2px}
+  .vA .mk-prog i{background:#c4b5fd;box-shadow:0 0 8px rgba(196,181,253,.5)}
+  .vA .mk-mini{border-radius:4px}
+  .vA .mk-play{background:transparent;border:1px solid rgba(255,255,255,.22);color:#f1f1ef;border-radius:50%}
+  .vA .mk-ctrl{gap:20px}
+
+  /* ================= 方案 B · 玻璃层叠 ================= */
+  .vB{
+    --sbw:242px;--mk-radius:26px;--mk-radius-sm:12px;--mk-cover:120px;--mk-cover-r:22px;
+    --mk-title:28px;--mk-title-w:800;--mk-title-ls:-.4px;--mk-btn-r:26px;
+    --mk-cols:32px 1fr 120px 58px;--mk-row-pad:10px 13px;--mk-row-r:12px;--mk-row-gap:3px;
+    --mk-hero-pad:26px 26px 20px;--mk-hero-gap:20px;
+    background:
+      radial-gradient(900px 520px at 78% -6%,rgba(109,123,255,.16),transparent 62%),
+      radial-gradient(700px 480px at 8% 96%,rgba(167,139,250,.14),transparent 60%),
+      #09090c;
+    color:#f4f4f6;
+  }
+  .vB .mock{background:rgba(255,255,255,.02)}
+  .vB .mk-side{background:rgba(255,255,255,.035);backdrop-filter:blur(28px) saturate(1.3);
+    border-right:1px solid rgba(255,255,255,.07)}
+  .vB .mk-main{background:rgba(255,255,255,.012)}
+  .vB .mk-search{background:rgba(255,255,255,.06);color:#a1a1ad;border:1px solid rgba(255,255,255,.07);
+    --mk-search-op:1;border-radius:12px}
+  .vB .mk-nav a{color:#a5a5b2;border-radius:12px}
+  .vB .mk-nav a:hover{background:rgba(255,255,255,.06);color:#ececf2}
+  .vB .mk-nav a.on{background:linear-gradient(95deg,rgba(167,139,250,.22),rgba(109,123,255,.06));
+    color:#fff;box-shadow:inset 0 0 0 1px rgba(167,139,250,.22)}
+  .vB .mk-nav a.on svg{color:#c4b5fd;opacity:1}
+  .vB .mk-lib a{color:#a5a5b2;border-radius:12px}
+  .vB .mk-lib a:hover{background:rgba(255,255,255,.05)}
+  .vB .mk-lab{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.06)}
+  .vB .mk-cover{border-radius:22px;box-shadow:0 20px 46px -18px rgba(0,0,0,.9),
+    0 0 0 1px rgba(255,255,255,.07)}
+  .vB .mk-tag{background:linear-gradient(95deg,rgba(167,139,250,.24),rgba(109,123,255,.14));
+    color:#d5ccff;box-shadow:inset 0 0 0 1px rgba(196,181,253,.24)}
+  .vB .mk-meta h2{background:linear-gradient(96deg,#fff,#d5ccff 58%,#a5b4ff);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .vB .mk-btn{background:linear-gradient(96deg,#a78bfa,#6d7bff);color:#0a0a12;
+    box-shadow:0 10px 26px -10px rgba(109,123,255,.85)}
+  .vB .mk-row:hover{background:rgba(255,255,255,.045)}
+  .vB .mk-row.playing{background:linear-gradient(95deg,rgba(167,139,250,.14),rgba(109,123,255,.045));
+    box-shadow:inset 1px 0 0 #a78bfa}
+  .vB .mk-row.playing .t b{color:#fff}
+  .vB .mk-bar{background:rgba(18,18,24,.72);backdrop-filter:blur(30px) saturate(1.4);
+    border-top:1px solid rgba(255,255,255,.08)}
+  .vB .mk-prog{height:3px;background:rgba(255,255,255,.06)}
+  .vB .mk-prog i{background:linear-gradient(90deg,#a78bfa,#6d7bff);box-shadow:0 0 12px rgba(167,139,250,.6)}
+  .vB .mk-play{background:linear-gradient(96deg,#a78bfa,#6d7bff);
+    box-shadow:0 8px 24px -8px rgba(109,123,255,.9)}
+  .vB .mk-mini{border-radius:11px}
+  .vB .mk-cover,.vB .mk-mini{background:linear-gradient(145deg,#443c5e,#1b1b26 48%,#33294a)}
+
+  /* ================= 方案 C · 杂志编排 ================= */
+  .vC{
+    --sbw:206px;--mk-radius:0px;--mk-radius-sm:4px;--mk-cover:176px;--mk-cover-r:0px;
+    --mk-title:42px;--mk-title-w:500;--mk-title-ls:-1.4px;--mk-btn-r:0px;
+    --mk-cols:52px 1fr 96px 52px;--mk-row-pad:14px 4px;--mk-row-r:0px;--mk-row-gap:0px;
+    --mk-hero-pad:30px 34px 22px;--mk-hero-gap:26px;--mk-list-pad:18px;
+    --mk-font-display:"Songti SC","Source Han Serif SC",Georgia,serif;
+    background:#0e0d0b;color:#f4f0e8;
+  }
+  .vC .mk-side{background:#0e0d0b;border-right:1px solid rgba(244,240,232,.09);padding:24px 16px}
+  .vC .mk-brand b{font-family:"Songti SC",Georgia,serif;font-size:19px;font-weight:500;letter-spacing:4px}
+  .vC .mk-brand small{letter-spacing:3.4px;opacity:.34}
+  .vC .mk-search{background:#161411;color:#8c867c;border-radius:3px;--mk-search-op:1}
+  .vC .mk-nav a,.vC .mk-lib a{color:#a29b90;padding:8px 6px;border-radius:3px}
+  .vC .mk-nav a:hover,.vC .mk-lib a:hover{color:#f4f0e8}
+  .vC .mk-nav a.on{color:#e5a55c}
+  .vC .mk-nav a.on svg{color:#e5a55c;opacity:1}
+  .vC .mk-nav a em{font-family:"SF Mono",ui-monospace,monospace;opacity:.28}
+  .vC .mk-lab{border-top:1px solid rgba(244,240,232,.09);margin-top:auto;padding-top:16px;
+    letter-spacing:3px;opacity:.3}
+  .vC .mk-hero{align-items:flex-start;position:relative}
+  .vC .mk-cover{box-shadow:18px 18px 0 -1px rgba(229,165,92,.14),0 26px 60px -24px #000}
+  .vC .mk-meta{align-self:flex-start}
+  .vC .mk-tag{background:transparent;border:0;padding:0;color:#e5a55c;letter-spacing:4px;
+    font-size:9.5px;margin-bottom:14px}
+  .vC .mk-meta h2{font-size:42px;font-weight:500;letter-spacing:-1.4px;margin-bottom:12px;line-height:1}
+  .vC .mk-meta p{font-size:11px;opacity:.4;letter-spacing:.6px;max-width:340px}
+  .vC .mk-actions{align-self:flex-end}
+  .vC .mk-btn{background:#e5a55c;color:#0e0d0b;border-radius:0;letter-spacing:1.2px;
+    font-weight:600;padding:11px 20px;font-size:11px}
+  .vC .mk-ghost{background:transparent;color:#f4f0e8;border:1px solid rgba(244,240,232,.2);
+    border-radius:0}
+  .vC .mk-list{border-top:1px solid rgba(244,240,232,.12)}
+  .vC .mk-row{border-bottom:1px solid rgba(244,240,232,.07)}
+  .vC .mk-row:hover{background:rgba(244,240,232,.028)}
+  .vC .mk-row .n{font-family:"SF Mono",ui-monospace,monospace;font-size:13px;opacity:.3;letter-spacing:0}
+  .vC .mk-row .t b{font-size:14.5px;font-weight:400;letter-spacing:.2px}
+  .vC .mk-row.playing .t b{font-weight:600}
+  .vC .mk-row.playing .n{color:#e5a55c;opacity:1}
+  .vC .mk-row.playing{box-shadow:inset 3px 0 0 #e5a55c}
+  .vC .mk-row.playing{padding-left:10px}
+  .vC .mk-bar{border-top:1px solid rgba(244,240,232,.12);background:#0e0d0b}
+  .vC .mk-prog{height:1px;background:rgba(244,240,232,.1)}
+  .vC .mk-prog i{background:#e5a55c}
+  .vC .mk-mini{border-radius:0;box-shadow:0 0 0 1px rgba(244,240,232,.1)}
+  .vC .mk-play{border-radius:0;background:#e5a55c;color:#0e0d0b;width:36px;height:36px}
+  .vC .mk-ctrl{gap:22px}
+  .vC .mk-src b{font-weight:600;letter-spacing:.3px}
+
+  /* ================= 方案 D · 白昼纸感 ================= */
+  .vD{
+    --sbw:230px;--mk-radius:12px;--mk-radius-sm:8px;--mk-cover:112px;--mk-cover-r:6px;
+    --mk-title:27px;--mk-title-w:600;--mk-title-ls:.2px;--mk-btn-r:8px;
+    --mk-cols:34px 1fr 112px 58px;--mk-row-pad:10px 11px;--mk-row-r:7px;--mk-row-gap:1px;
+    --mk-hero-pad:24px 26px 18px;--mk-hero-gap:20px;--mk-list-pad:14px;
+    --mk-font-display:"Songti SC","Source Han Serif SC",Georgia,serif;
+    background:#f2efe9;color:#1b1a17;
+  }
+  .vD .mock{background:#f2efe9}
+  .vD .mk-side{background:#f7f5f0;border-right:1px solid #e2ddd3}
+  .vD .mk-mark{border-radius:9px}
+  .vD .mk-brand b{font-family:"Songti SC",Georgia,serif;font-weight:600;letter-spacing:2.4px;font-size:17px}
+  .vD .mk-brand small{color:#8b8478;opacity:1}
+  .vD .mk-search{background:#fff;border:1px solid #e2ddd3;color:#8b8478;--mk-search-op:1}
+  .vD .mk-nav a,.vD .mk-lib a{color:#5e584e}
+  .vD .mk-nav a:hover,.vD .mk-lib a:hover{background:#ece8e0;color:#1b1a17}
+  .vD .mk-nav a.on{color:#c1440e;background:#fbf3ee}
+  .vD .mk-nav a.on svg{color:#c1440e;opacity:1}
+  .vD .mk-nav a em,.vD .mk-lib a em{color:#a39b8f;opacity:1}
+  .vD .mk-lab{margin-top:auto;padding-top:15px;border-top:1px solid #e2ddd3;color:#a39b8f;opacity:1}
+  .vD .mk-main{background:#f2efe9}
+  .vD .mk-cover{box-shadow:0 14px 34px -16px rgba(60,50,30,.6),0 0 0 1px #ded8cc}
+  .vD .mk-cover::after{background:radial-gradient(circle at 30% 26%,rgba(233,180,140,.55),transparent 58%)}
+  .vD .mk-tag{background:#fbf3ee;color:#c1440e;box-shadow:inset 0 0 0 1px rgba(193,68,14,.2)}
+  .vD .mk-meta h2{color:#151411}
+  .vD .mk-meta p{color:#6f695f;opacity:1}
+  .vD .mk-btn{background:#1b1a17;color:#f7f5f0;border-radius:8px}
+  .vD .mk-ghost{background:transparent;color:#3b372f;border:1px solid #d8d2c7}
+  .vD .mk-list{border-top:1px solid #e2ddd3}
+  .vD .mk-row .n{color:#a39b8f}
+  .vD .mk-row:hover{background:#eee9e0}
+  .vD .mk-row.playing{background:#fdfbf7;box-shadow:inset 0 0 0 1px #e8ded2}
+  .vD .mk-row.playing .n{color:#c1440e}
+  .vD .mk-row.playing .t b{color:#151411}
+  .vD .mk-row .t em,.vD .mk-row .a,.vD .mk-row .d{color:#8b8478}
+  .vD .mk-bar{background:#fbf9f5;border-top:1px solid #e2ddd3;
+    box-shadow:0 -8px 24px -18px rgba(60,50,30,.5)}
+  .vD .mk-prog{height:2px;background:#e8e2d8}
+  .vD .mk-prog i{background:#c1440e}
+  .vD .mk-mini{border-radius:7px;box-shadow:0 0 0 1px #ded8cc}
+  .vD .mk-mini::after{background:radial-gradient(circle at 32% 28%,rgba(233,180,140,.5),transparent 60%)}
+  .vD .mk-play{background:#1b1a17;color:#f7f5f0}
+  .vD .mk-src b{color:#151411}
+  .vD .mk-src small{color:#8b8478;opacity:1}
+  .vD .mk-ctrl>svg,.vD .mk-right svg{color:#5e584e;opacity:.6}
+
+  /* ---------- icon 展示 ---------- */
+  .icons{margin-top:52px;padding-top:28px;border-top:1px solid var(--lab-line)}
+  .icons h2{font-family:"Songti SC",Georgia,serif;font-size:21px;font-weight:600;letter-spacing:.6px;
+    margin-bottom:6px}
+  .icons>p{font-size:12px;color:var(--lab-muted);margin-bottom:20px;letter-spacing:.3px}
+  .icon-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+  .ic{display:flex;flex-direction:column;align-items:center;gap:8px;padding:15px 6px 12px;
+    border-radius:10px;border:1px solid var(--lab-line);background:var(--lab-panel);
+    transition:.2s cubic-bezier(.4,0,.2,1)}
+  .ic:hover{border-color:rgba(255,255,255,.18);transform:translateY(-2px)}
+  .ic svg{width:22px;height:22px;color:#e9e9ec}
+  .ic span{font-size:10px;color:var(--lab-muted);letter-spacing:.4px}
+  .icon-note{display:flex;gap:26px;margin-top:22px;flex-wrap:wrap;font-size:11.5px;color:var(--lab-muted)}
+  .icon-note b{color:#c4b5fd;font-weight:500}
+  .ic-strip{display:flex;align-items:center;gap:14px;margin-top:16px;padding:16px 18px;
+    border-radius:10px;border:1px solid var(--lab-line)}
+  .ic-strip svg{width:15px;height:15px}
+  .ic-strip.dark{background:#0b0b0c;color:#f1f1ef}
+  .ic-strip.light{background:#f7f5f0;color:#1b1a17;border-color:#e2ddd3}
+  .ic-strip em{font-style:normal;font-size:10.5px;opacity:.5;margin-right:4px}
+
+  .foot{margin-top:44px;padding-top:20px;border-top:1px solid var(--lab-line);
+    font-size:11.5px;color:var(--lab-muted);line-height:1.9}
+  .foot b{color:var(--lab-accent);font-weight:500}
+  @media (max-width:1100px){
+    .notes{grid-template-columns:repeat(2,1fr)}
+    .mock{height:620px;grid-template-columns:1fr;--mk-cover:92px;--mk-title:26px}
+    .mk-side{display:none}
+    .mk-bar{grid-column:1}
+    .mk-ghost{display:none}
+    .mk-row{grid-template-columns:32px 1fr 48px;gap:10px}
+    .mk-row .a{display:none}
+    .mk-hero{padding:20px 20px 16px;gap:16px}
+    .mk-list{padding:0 14px 6px}
+    .mk-meta h2{overflow-wrap:anywhere}
+    .mk-bar-in{flex-wrap:wrap;gap:12px;padding:11px 16px}
+    .mk-src,.mk-right{flex:0 1 auto}
+    .mk-ctrl{margin:0 0 0 auto;gap:14px}
+  }
+  @media (max-width:720px){
+    .notes{grid-template-columns:1fr}
+    .mk-right{display:none}
+    .mk-ctrl{margin:0 auto}
+    .lab{padding:24px 16px 60px}
+  }
+</style>
+</head>
+<body>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8.5 5.4 19 12 8.5 18.6z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="8" y="5" width="3.2" height="14" rx="1.4" fill="currentColor" stroke="none"/><rect x="12.8" y="5" width="3.2" height="14" rx="1.4" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6.6 5.4v13.2" stroke-width="1.8"/><path d="M18 5.9 8.6 12 18 18.1z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M17.4 5.4v13.2" stroke-width="1.8"/><path d="M6 5.9 15.4 12 6 18.1z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M4 7h3.2l9.3 10H20"/><path d="M4 17h3.2l3.1-3.4"/><path d="M13.4 9.6 16.5 7H20"/><path d="M17.4 4.2 20.4 7l-3 2.8"/><path d="M17.4 14.2 20.4 17l-3 2.8"/></symbol>
+  <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M4.2 9.4A4.2 4.2 0 0 1 8.4 5.2h9.4"/><path d="M15.4 2.6 18.2 5.2l-2.8 2.6"/><path d="M19.8 14.6a4.2 4.2 0 0 1-4.2 4.2H6.2"/><path d="M8.6 21.4 5.8 18.8l2.8-2.6"/></symbol>
+  <symbol id="i-repeat1" viewBox="0 0 24 24"><path d="M4.2 9.4A4.2 4.2 0 0 1 8.4 5.2h9.4"/><path d="M15.4 2.6 18.2 5.2l-2.8 2.6"/><path d="M19.8 14.6a4.2 4.2 0 0 1-4.2 4.2H6.2"/><path d="M8.6 21.4 5.8 18.8l2.8-2.6"/><path d="M12 9.2v5" stroke-width="1.4"/><path d="M11.2 9.4h1" stroke-width="1.4"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 19.9c-1.1-.74-7.1-4.9-7.1-9.4a4.2 4.2 0 0 1 7.1-3 4.2 4.2 0 0 1 7.1 3c0 4.5-6 8.66-7.1 9.4z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.3"/><path d="M12 7.6v4.8l3.1 2"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13.4 2.8 5.8 13.1h4.9L10.6 21.2 18.2 11h-4.9z"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3.2c.5 3.4 1.9 4.8 5.3 5.3-3.4.5-4.8 1.9-5.3 5.3-.5-3.4-1.9-4.8-5.3-5.3 3.4-.5 4.8-1.9 5.3-5.3z"/><path d="M17.6 13.4c.3 1.7 1 2.4 2.7 2.7-1.7.3-2.4 1-2.7 2.7-.3-1.7-1-2.4-2.7-2.7 1.7-.3 2.4-1 2.7-2.7z" stroke-width="1.4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.6"/><path d="m15.8 15.8 4.2 4.2"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4.2 7.4h15.6" stroke-width="1.8"/><path d="M4.2 12h11.6" stroke-width="1.8"/><path d="M4.2 16.6h7.4" stroke-width="1.8"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.4 6.4 17.6 17.6"/><path d="M17.6 6.4 6.4 17.6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6.6 9.4 12 14.6 17.4 9.4"/></symbol>
+  <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M14.6 6.6 9.4 12 14.6 17.4"/></symbol>
+  <symbol id="i-queue" viewBox="0 0 24 24"><path d="M3.6 6.6h11"/><path d="M3.6 12h11"/><path d="M3.6 17.4h7.2"/><path d="M20.4 8.4v9.2"/><path d="M20.4 8.4c-2 .9-3.4 1.6-4.6 2.2" stroke-width="1.4"/><circle cx="18" cy="18" r="2.4"/></symbol>
+  <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9.4h3.4L11.8 6v12L7.4 14.6H4z"/><path d="M15.2 9.6a3.4 3.4 0 0 1 0 4.8" stroke-width="1.4"/><path d="M17.8 7.2a7 7 0 0 1 0 9.6" stroke-width="1.4"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9.2 17.4V6.2l9-1.9v11.4"/><circle cx="6.6" cy="17.8" r="2.6"/><circle cx="15.6" cy="15.7" r="2.6"/></symbol>
+  <symbol id="i-pip" viewBox="0 0 24 24"><rect x="3" y="4.6" width="18" height="14.8" rx="3"/><rect x="11.4" y="11" width="7.2" height="5.6" rx="1.8" fill="currentColor" stroke="none" opacity=".7"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.2" y="3.6" width="17.6" height="16.8" rx="3"/><circle cx="8.6" cy="8.8" r="1.5"/><path d="M20.8 15.6 16 10.8 5.4 20.4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7.4h5.6"/><path d="M14.4 7.4h5.6"/><path d="M4 16.6h9.6"/><path d="M18.4 16.6h1.6"/><circle cx="12" cy="7.4" r="2.2"/><circle cx="16" cy="16.6" r="2.2"/></symbol>
+  <symbol id="i-disc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="2.4"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M4.8 12a7.2 7.2 0 0 1 12.4-5"/><path d="M19.2 12a7.2 7.2 0 0 1-12.4 5"/><path d="M17.6 3.8v3.4h-3.4"/><path d="M6.4 20.2v-3.4h3.4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.6 7.2h14.8"/><path d="M9.2 7.2V4.8h5.6v2.4"/><path d="M6.6 7.2 7.5 19.4h9L17.4 7.2"/><path d="M10.4 10.4v5.6" stroke-width="1.3"/><path d="M13.6 10.4v5.6" stroke-width="1.3"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3.6v11"/><path d="M8.4 7.2 12 3.6 15.6 7.2"/><path d="M5.4 12.6v6.2h13.2v-6.2"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3.8v11.6"/><path d="M7.6 11.2 12 15.6 16.4 11.2"/><path d="M4.8 18.6h14.4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5.6 12.6 9.8 16.8 18.6 7.6"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="6.2" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="17.8" cy="12" r="1.5" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M9.4 4.4H4.4v5"/><path d="M14.6 4.4h5v5"/><path d="M19.6 14.6v5h-5"/><path d="M4.4 14.6v5h5"/><path d="M4.4 4.4 9.6 9.6" stroke-width="1.3"/><path d="M19.6 19.6 14.4 14.4" stroke-width="1.3"/></symbol>
+</svg>
+
+<div class="lab">
+  <header class="lab-head">
+    <div>
+      <h1>云音 · <span>界面方案预览</span></h1>
+      <p>四套完整界面方向 · 统一重绘图标系统 · 点击切换对比，选定后落地到播放器</p>
+    </div>
+    <div class="tabs">
+      <button class="tab on" data-v="A">A 极简黑胶</button>
+      <button class="tab" data-v="B">B 玻璃层叠</button>
+      <button class="tab" data-v="C">C 杂志编排</button>
+      <button class="tab" data-v="D">D 白昼纸感</button>
+    </div>
+  </header>
+
+  <div class="notes">
+    <div class="note on" data-v="A">
+      <b>A · 极简黑胶</b>
+      <small>近乎无色彩、无卡片边框，靠留白与字号建立秩序。衬线标题 + 等宽序号，播放条贴底细线。</small>
+      <i>克制 · 高级黑白</i>
+    </div>
+    <div class="note" data-v="B">
+      <b>B · 玻璃层叠</b>
+      <small>深空底 + 模糊玻璃层，大圆角卡片与渐变文字，播放条悬浮。最接近汽水音乐的质感。</small>
+      <i>氛围 · 现代流行</i>
+    </div>
+    <div class="note" data-v="C">
+      <b>C · 杂志编排</b>
+      <small>大号衬线跨栏标题、方正无圆角、琥珀强调色。布局有印刷品的呼吸感与锋利度。</small>
+      <i>编排 · 个性强</i>
+    </div>
+    <div class="note" data-v="D">
+      <b>D · 白昼纸感</b>
+      <small>米白纸底 + 墨黑文字 + 朱砂点缀，白天使用不刺眼。适合喜欢浅色界面的人。</small>
+      <i>纸感 · 明亮舒适</i>
+    </div>
+  </div>
+
+  <div class="stage-wrap" id="stages"></div>
+
+  <section class="icons">
+    <h2>统一重绘的图标系统</h2>
+    <p>24×24 网格 · 描边 1.6px · 圆头线端 · 几何构成 · 全部由 emoji 与字符符号替换而来</p>
+    <div class="icon-row">
+      <div class="ic"><svg><use href="#i-play"/></svg><span>播放</span></div>
+      <div class="ic"><svg><use href="#i-pause"/></svg><span>暂停</span></div>
+      <div class="ic"><svg><use href="#i-prev"/></svg><span>上一首</span></div>
+      <div class="ic"><svg><use href="#i-next"/></svg><span>下一首</span></div>
+      <div class="ic"><svg><use href="#i-shuffle"/></svg><span>随机</span></div>
+      <div class="ic"><svg><use href="#i-repeat"/></svg><span>循环</span></div>
+      <div class="ic"><svg><use href="#i-repeat1"/></svg><span>单曲循环</span></div>
+      <div class="ic"><svg><use href="#i-heart"/></svg><span>收藏</span></div>
+      <div class="ic"><svg><use href="#i-clock"/></svg><span>最近播放</span></div>
+      <div class="ic"><svg><use href="#i-bolt"/></svg><span>私人FM</span></div>
+      <div class="ic"><svg><use href="#i-sparkle"/></svg><span>每日推荐</span></div>
+      <div class="ic"><svg><use href="#i-search"/></svg><span>搜索</span></div>
+      <div class="ic"><svg><use href="#i-menu"/></svg><span>菜单</span></div>
+      <div class="ic"><svg><use href="#i-close"/></svg><span>关闭</span></div>
+      <div class="ic"><svg><use href="#i-chevron-down"/></svg><span>收起</span></div>
+      <div class="ic"><svg><use href="#i-chevron-left"/></svg><span>返回</span></div>
+      <div class="ic"><svg><use href="#i-queue"/></svg><span>播放队列</span></div>
+      <div class="ic"><svg><use href="#i-volume"/></svg><span>音量</span></div>
+      <div class="ic"><svg><use href="#i-music"/></svg><span>歌词</span></div>
+      <div class="ic"><svg><use href="#i-pip"/></svg><span>悬浮歌词</span></div>
+      <div class="ic"><svg><use href="#i-image"/></svg><span>歌词海报</span></div>
+      <div class="ic"><svg><use href="#i-sliders"/></svg><span>音效</span></div>
+      <div class="ic"><svg><use href="#i-disc"/></svg><span>榜单</span></div>
+      <div class="ic"><svg><use href="#i-refresh"/></svg><span>重试</span></div>
+      <div class="ic"><svg><use href="#i-plus"/></svg><span>添加</span></div>
+      <div class="ic"><svg><use href="#i-trash"/></svg><span>清空</span></div>
+      <div class="ic"><svg><use href="#i-share"/></svg><span>分享</span></div>
+      <div class="ic"><svg><use href="#i-download"/></svg><span>下载</span></div>
+      <div class="ic"><svg><use href="#i-check"/></svg><span>已选</span></div>
+      <div class="ic"><svg><use href="#i-more"/></svg><span>更多</span></div>
+      <div class="ic"><svg><use href="#i-expand"/></svg><span>全屏</span></div>
+    </div>
+    <div class="icon-note">
+      <span><b>替换范围</b>　侧栏 emoji（❤️ 🕐 ⚡ ✨）· 字符符号（‹ × ✕ ◈ ↑ ♪）· 原有杂糅线条图标</span>
+      <span><b>统一规格</b>　1.6px 描边 / 圆头线端 / 16-22px 多尺寸 / currentColor 自动适配深浅色</span>
+    </div>
+    <div class="ic-strip light"><em>浅色底</em>
+      <svg><use href="#i-play"/></svg><svg><use href="#i-pause"/></svg><svg><use href="#i-heart"/></svg>
+      <svg><use href="#i-search"/></svg><svg><use href="#i-queue"/></svg><svg><use href="#i-volume"/></svg>
+      <svg><use href="#i-music"/></svg><svg><use href="#i-sliders"/></svg><svg><use href="#i-disc"/></svg>
+      <svg><use href="#i-pip"/></svg><svg><use href="#i-image"/></svg><svg><use href="#i-expand"/></svg>
+    </div>
+    <div class="ic-strip dark"><em>深色底</em>
+      <svg><use href="#i-play"/></svg><svg><use href="#i-pause"/></svg><svg><use href="#i-heart"/></svg>
+      <svg><use href="#i-search"/></svg><svg><use href="#i-queue"/></svg><svg><use href="#i-volume"/></svg>
+      <svg><use href="#i-music"/></svg><svg><use href="#i-sliders"/></svg><svg><use href="#i-disc"/></svg>
+      <svg><use href="#i-pip"/></svg><svg><use href="#i-image"/></svg><svg><use href="#i-expand"/></svg>
+    </div>
+  </section>
+
+  <div class="foot">
+    说明：按钮上方的四张卡片也可点击切换方案。<br />
+    <b>下一步</b>　你选定一个方向（或「A 的侧栏 + C 的标题」这类混搭也可以），我会把该方案的数据密度、组件、动效逐项落到 <b>player.html</b>，并统一替换全部图标。
+  </div>
+</div>
+
+<template id="tpl">
+  <div class="mock">
+    <aside class="mk-side">
+      <div class="mk-brand">
+        <span class="mk-mark">
+          <svg viewBox="0 0 512 512" aria-hidden="true">
+            <rect width="512" height="512" rx="115" fill="#141318"/>
+            <radialGradient id="lm" cx=".5" cy=".52" r=".58"><stop offset="0" stop-color="#a78bfa" stop-opacity=".42"/><stop offset="1" stop-color="#7c3aed" stop-opacity="0"/></radialGradient>
+            <rect width="512" height="512" rx="115" fill="url(#lm)"/>
+            <mask id="lk"><g fill="#fff"><circle cx="168" cy="274" r="86"/><circle cx="256" cy="228" r="104"/><circle cx="346" cy="274" r="80"/><rect x="112" y="272" width="290" height="88" rx="44"/></g><g fill="#000"><circle cx="216" cy="302" r="31"/><rect x="234" y="197" width="16" height="110" rx="8"/><path d="M250 200 L289 234 L250 258 Z"/></g></mask>
+            <g mask="url(#lk)"><rect width="512" height="512" fill="#c4b5fd"/></g>
+          </svg>
+        </span>
+        <div><b>云音</b><small>CLOUD MUSIC</small></div>
+      </div>
+      <div class="mk-search"><svg><use href="#i-search"/></svg><span>搜索歌曲、歌手</span></div>
+      <nav class="mk-nav">
+        <a class="on"><svg><use href="#i-disc"/></svg>热歌榜<em>200</em></a>
+        <a><svg><use href="#i-bolt"/></svg>新歌榜<em>200</em></a>
+        <a><svg><use href="#i-sparkle"/></svg>飙升榜<em>200</em></a>
+        <a><svg><use href="#i-music"/></svg>原创榜<em>200</em></a>
+        <a><svg><use href="#i-heart"/></svg>网红热歌<em>200</em></a>
+        <a><svg><use href="#i-sliders"/></svg>电音榜<em>200</em></a>
+      </nav>
+      <div class="mk-lab">MY LIBRARY</div>
+      <div class="mk-lib">
+        <a><svg><use href="#i-heart"/></svg>我的收藏<em>12</em></a>
+        <a><svg><use href="#i-clock"/></svg>最近播放<em>24</em></a>
+        <a><svg><use href="#i-bolt"/></svg>私人FM</a>
+        <a><svg><use href="#i-sparkle"/></svg>每日推荐<em>30</em></a>
+      </div>
+    </aside>
+
+    <main class="mk-main">
+      <div class="mk-hero">
+        <div class="mk-cover"></div>
+        <div class="mk-meta">
+          <span class="mk-tag">实时榜单</span>
+          <h2>热歌榜</h2>
+          <p>每日更新 · 全网热度最高的 200 首，按播放与收藏综合排序</p>
+        </div>
+        <div class="mk-actions">
+          <button class="mk-btn"><svg><use href="#i-play"/></svg>播放全部</button>
+          <button class="mk-btn mk-ghost"><svg><use href="#i-expand"/></svg>沉浸式</button>
+        </div>
+      </div>
+      <div class="mk-list">
+        <div class="mk-row playing">
+          <span class="n">01</span>
+          <span class="t"><span class="eq"><i></i><i></i><i></i></span><b>我不难过</b><em>孙燕姿</em></span>
+          <span class="a">Leave</span><span class="d">4:25</span>
+        </div>
+        <div class="mk-row">
+          <span class="n">02</span>
+          <span class="t"><b>海屿你</b><em>马也_Crabbit</em></span>
+          <span class="a">海屿你</span><span class="d">3:48</span>
+        </div>
+        <div class="mk-row">
+          <span class="n">03</span>
+          <span class="t"><b>于是</b><em>郑润泽</em></span>
+          <span class="a">于是</span><span class="d">4:02</span>
+        </div>
+        <div class="mk-row">
+          <span class="n">04</span>
+          <span class="t"><b>漠河舞厅</b><em>柳爽</em></span>
+          <span class="a">漠河舞厅</span><span class="d">5:31</span>
+        </div>
+        <div class="mk-row">
+          <span class="n">05</span>
+          <span class="t"><b>夜色边缘</b><em>陈亦云</em></span>
+          <span class="a">夜色边缘</span><span class="d">3:56</span>
+        </div>
+        <div class="mk-row">
+          <span class="n">06</span>
+          <span class="t"><b>我记得</b><em>赵雷</em></span>
+          <span class="a">署前街少年</span><span class="d">4:48</span>
+        </div>
+      </div>
+    </main>
+
+    <footer class="mk-bar">
+      <div class="mk-prog"><i></i></div>
+      <div class="mk-bar-in">
+        <div class="mk-src">
+          <span class="mk-mini"></span>
+          <div><b>我不难过</b><small>孙燕姿 · 4:25</small></div>
+        </div>
+        <div class="mk-ctrl">
+          <svg><use href="#i-shuffle"/></svg>
+          <svg><use href="#i-prev"/></svg>
+          <button class="mk-play"><svg><use href="#i-pause"/></svg></button>
+          <svg><use href="#i-next"/></svg>
+          <svg><use href="#i-heart"/></svg>
+        </div>
+        <div class="mk-right">
+          <svg><use href="#i-music"/></svg>
+          <svg><use href="#i-queue"/></svg>
+          <svg><use href="#i-volume"/></svg>
+          <svg><use href="#i-expand"/></svg>
+        </div>
+      </div>
+    </footer>
+  </div>
+</template>
+
+<script>
+(function(){
+  var tpl = document.getElementById('tpl');
+  var wrap = document.getElementById('stages');
+  var names = { A:'极简黑胶', B:'玻璃层叠', C:'杂志编排', D:'白昼纸感' };
+  var stages = {};
+  ['A','B','C','D'].forEach(function(v, i){
+    var sec = document.createElement('section');
+    sec.className = 'stage v' + v + (i === 0 ? ' on' : '');
+    sec.dataset.v = v;
+    var node = tpl.content.cloneNode(true);
+    sec.appendChild(node);
+    wrap.appendChild(sec);
+    stages[v] = sec;
+  });
+
+  function activate(v){
+    Object.keys(stages).forEach(function(k){
+      stages[k].classList.toggle('on', k === v);
+    });
+    document.querySelectorAll('.tab').forEach(function(b){
+      b.classList.toggle('on', b.dataset.v === v);
+    });
+    document.querySelectorAll('.note').forEach(function(n){
+      n.classList.toggle('on', n.dataset.v === v);
+    });
+  }
+
+  document.querySelectorAll('.tab').forEach(function(b){
+    b.addEventListener('click', function(){ activate(b.dataset.v); });
+  });
+  document.querySelectorAll('.note').forEach(function(n){
+    n.addEventListener('click', function(){ activate(n.dataset.v); });
+  });
+})();
+</script>
+</body>
+</html>
