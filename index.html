@@ -117,6 +117,14 @@
   }
   .enter-btn:hover{transform:translateY(-2px) scale(1.02);background:#241f19;box-shadow:0 22px 44px -18px rgba(60,50,30,.9),inset 0 1px 0 rgba(255,255,255,.2)}
   .enter-btn svg{width:20px;height:20px}
+  .apk-btn{
+    display:inline-flex;align-items:center;gap:8px;margin-top:14px;
+    color:#3d3830;font-weight:600;font-size:13px;text-decoration:none;
+    padding:10px 22px;border-radius:50px;border:1px solid rgba(60,50,30,.22);
+    transition:.2s;
+  }
+  .apk-btn:hover{background:rgba(255,255,255,.6);border-color:rgba(60,50,30,.4)}
+  .apk-btn svg{width:16px;height:16px}
   .note{margin-top:26px;font-size:11px;color:#8b8478;line-height:1.7}
   .note a{color:#c1440e;text-decoration:none}
   .vinyl-deco{
@@ -170,6 +178,10 @@
   <a class="enter-btn" href="player.html">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
     进入播放器
+  </a>
+  <a class="apk-btn" href="download/yunyin.apk" download>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+    下载 Android App（APK）
   </a>
   <p class="note">非官方个人学习项目，与网易云音乐无隶属关系 · 不存储任何音频文件，版权归原平台及版权方所有 · <a href="https://github.com/yunyin-music/yunyin-music.github.io/issues/new" target="_blank" rel="noopener">侵权请联系删除</a></p>
 </div>
