@@ -40,8 +40,27 @@ jobs:
         working-directory: app-android
         run: gradle assembleDebug --no-daemon --stacktrace
 
+      - name: Verify APK
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | tail -1)
+          "$BT/aapt" dump badging app-android/app/build/outputs/apk/debug/app-debug.apk | head -12
+
       - name: Rename APK
         run: cp app-android/app/build/outputs/apk/debug/app-debug.apk yunyin.apk
+
+      - name: Publish APK to site
+        run: |
+          mkdir -p download
+          cp yunyin.apk download/yunyin.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add download/yunyin.apk
+          if git diff --cached --quiet; then
+            echo "apk unchanged"
+          else
+            git commit -m "chore: update android apk"
+            git push
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
