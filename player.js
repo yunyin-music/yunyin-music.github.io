@@ -4,11 +4,17 @@ const API = "https://api.injahow.cn/meting/";
    meting 公共实例有每日调用上限（会返回 {"message":"请求次数已达上限"}），
    官方 API 走代理可绕开该限制，保证榜单/歌词/音源都有第二条路 */
 const NET = "https://music.163.com";
-const NET_PROXIES = [
+/* 自建 Cloudflare Worker 中转（第一优先通道，可选）
+   部署 worker/yunyin-proxy.js 后把地址填到这里，例如 https://yunyin.abc.workers.dev
+   留空则只用公共代理 */
+const WORKER = "";
+const NET_PROXIES = [];
+if(WORKER) NET_PROXIES.push((u)=>`${WORKER}/?url=${encodeURIComponent(u)}`);
+NET_PROXIES.push(
   (u)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   (u)=>`https://cors.eu.org/${u}`,
-  (u)=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
-];
+  (u)=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`
+);
 async function netJSON(path, ms){
   const target = NET + path;
   for(const px of NET_PROXIES){
@@ -16,7 +22,7 @@ async function netJSON(path, ms){
       const r = await fetchTimeout(px(target), ms||15000);
       if(!r || !r.ok) continue;
       const d = await r.json();
-      if(d && (d.code===200 || d.status===200 || d.playlist || d.result || d.data || d.songs || d.lrc)) return d;
+      if(d && (d.code===200 || d.status===200 || d.playlist || d.result || d.data || d.songs || d.lrc || d.hotSongs || d.artist || d.album)) return d;
     }catch(e){}
   }
   return null;
@@ -38,7 +44,20 @@ function neteaseOnly(u){
   if(/qqmusic|qq\.com|kugou|kuwo|migu|qpic/i.test(u)) return "";
   return u.replace(/^http:/,"https:");
 }
+/* 通道零：同源静态快照（GitHub Actions 每日抓取并提交到 data/，打开即得、零接口依赖） */
+async function fetchSnapshot(pid){
+  try{
+    const r = await fetchTimeout(`./data/${pid}.json`, 2500);
+    if(!r || !r.ok) return null;
+    const d = await r.json();
+    const list = Array.isArray(d) ? d : (d && Array.isArray(d.list) ? d.list : null);
+    return (list && list.length) ? list : null;
+  }catch(e){ return null; }
+}
 async function fetchPlaylist(pid){
+  // 通道零：同源静态快照
+  const snap = await fetchSnapshot(pid);
+  if(snap) return snap;
   // 通道一：meting（网易云）
   try{
     const res = await fetchTimeout(`${API}?type=playlist&id=${pid}&server=netease`, 5000);
@@ -70,26 +89,32 @@ async function fetchPlaylist(pid){
     }catch(e){}
     return null;
   })();
-  // 通道二：官方歌单接口（经代理，不受 meting 每日额度影响；n=100 取前 100 首）
-  // 代理限流时单次可能很慢，最多等 7 秒就转而使用已并行取回的静态兜底
-  const deadline = new Promise(r=>setTimeout(()=>r(null), 7000));
-  const d = await Promise.race([netJSON(`/api/v6/playlist/detail?id=${pid}&n=100`, 7000), deadline]);
-  const tr = d && d.playlist && d.playlist.tracks;
-  if(Array.isArray(tr) && tr.length){
-    return tr.map(t=>({
-      id:String(t.id),
-      name:t.name||"未知歌曲",
-      artist:(t.ar||[]).map(a=>a.name).join(" / ")||"未知歌手",
-      pic:t.al && t.al.picUrl ? (t.al.picUrl+"?param=200y200").replace(/^http:/,"https:") : "",
-      url:"",
-      lrc:"",
-      album:(t.al && t.al.name)||"",
-      dur:t.dt||0
-    }));
-  }
+  // 通道二：官方歌单接口（经代理；歌单详情默认只回 10 首，用 trackIds 补齐到 100 首）
+  // 代理限流时单次可能很慢，最多等 8 秒就转而使用已并行取回的静态兜底
+  const deadline = new Promise(r=>setTimeout(()=>r(null), 8000));
+  const d = await Promise.race([netPlaylistSongs(pid, 100), deadline]);
+  if(Array.isArray(d) && d.length) return d;
   const fbList = await fb;
   if(fbList) return fbList;
   return null;
+}
+/* 官方歌单取全量：detail 只给 10 首，按 trackIds 分批请求歌曲详情补齐 */
+async function netPlaylistSongs(pid, limit){
+  const d = await netJSON(`/api/v6/playlist/detail?id=${pid}&n=1`, 7000);
+  const pl = d && d.playlist;
+  if(!pl) return null;
+  const ids = (pl.trackIds||[]).map(x=>x.id).slice(0, limit||100);
+  let tracks = pl.tracks || [];
+  if(ids.length > tracks.length){
+    const got = [];
+    for(let i=0;i<ids.length;i+=100){
+      const chunk = ids.slice(i,i+100);
+      const sd = await netJSON(`/api/song/detail?ids=%5B${chunk.join(",")}%5D`, 8000);
+      if(sd && Array.isArray(sd.songs)) got.push(...sd.songs);
+    }
+    if(got.length > tracks.length) tracks = got;
+  }
+  return tracks.length ? tracks.map(mapTrack) : null;
 }
 /* 直链解析（vkeys 网易云接口，自带 CORS，返回网易 CDN 直链）：快且不受 meting 额度影响 */
 async function vkeysUrl(id){
@@ -169,34 +194,49 @@ const CHARTS = [
   { id:"5059661515", name:"民谣榜", icon:"i-music", desc:"民谣歌曲热度排行，木吉他与故事的声音。" },
   { id:"5059644681", name:"日语榜", icon:"i-sparkle", desc:"日语歌曲热度排行，J-POP 前沿速递。" },
   { id:"745956260", name:"韩语榜", icon:"i-flame", desc:"韩语歌曲热度排行，K-POP 热门追踪。" },
+  { id:"71384707", name:"古典榜", icon:"i-music", desc:"古典音乐热度排行，从巴赫到现代派经典。" },
+  { id:"21845217", name:"KTV唛榜", icon:"i-volume", desc:"KTV 点唱热度排行，麦霸必点曲目。" },
+  { id:"2809513713", name:"欧美热歌榜", icon:"i-flame", desc:"欧美地区最热单曲排行，Billboard 风向同步。" },
+  { id:"12225155968", name:"欧美R&B榜", icon:"i-heart", desc:"欧美 R&B / Soul 热度排行，律动与灵魂。" },
+  { id:"6886768100", name:"中文慢摇DJ榜", icon:"i-sliders", desc:"中文慢摇与 DJ 混音热曲排行，开车夜行必备。" },
+  { id:"6732051320", name:"俄语榜", icon:"i-bolt", desc:"俄语歌曲热度排行，感受东欧流行与说唱。" },
+  { id:"7095271308", name:"泰语榜", icon:"i-sparkle", desc:"泰语歌曲热度排行，东南亚流行速递。" },
+  { id:"8661209031", name:"乐夏榜", icon:"i-headphone", desc:"《乐队的夏天》相关乐队与现场作品排行。" },
+  { id:"9651277674", name:"AI歌曲榜", icon:"i-image", desc:"AI 创作与演唱歌曲排行，听见机器的旋律。" },
 ];
 
-// 推荐歌单（ID 均经官方接口实测有效，2026-10 校验）
+// 推荐歌单（名称与内容已按官方分类榜单核对，曲目数由每日快照更新）
 const PLAYLISTS = [
-  { id:"2301490995", name:"华语情歌", icon:"i-heart", count:22,  g:"linear-gradient(135deg,#f43f5e,#fb7185)" },
-  { id:"7220139227", name:"怀旧金曲", icon:"i-disc", count:50,  g:"linear-gradient(135deg,#4b6cb7,#182848)" },
-  { id:"66518941",   name:"轻柔钢琴", icon:"i-music", count:84,  g:"linear-gradient(135deg,#7f7fd5,#91eae4)" },
-  { id:"5314368341", name:"欧美电音", icon:"i-sliders", count:77,  g:"linear-gradient(135deg,#fc466b,#3f5efb)" },
-  { id:"508075145",  name:"影视金曲", icon:"i-film", count:82,  g:"linear-gradient(135deg,#f59e0b,#fbbf24)" },
-  { id:"2500887487", name:"游戏原声", icon:"i-headphone", count:116, g:"linear-gradient(135deg,#11998e,#38ef7d)" },
-  { id:"2811289513", name:"青春华语", icon:"i-sparkle", count:80,  g:"linear-gradient(135deg,#f6d365,#fda085)" },
-  { id:"17812056379", name:"90后回忆杀", icon:"i-clock", count:100, g:"linear-gradient(135deg,#a18cd1,#fbc2eb)" },
-  { id:"6845706978", name:"怀旧8090", icon:"i-disc", count:151, g:"linear-gradient(135deg,#667eea,#764ba2)" },
-  { id:"13498143641", name:"重返2020", icon:"i-flame", count:101, g:"linear-gradient(135deg,#ff9a9e,#fecfef)" },
-  { id:"13688237649", name:"欧美R&B", icon:"i-heart", count:58,  g:"linear-gradient(135deg,#30cfd0,#330867)" },
-  { id:"8421570200", name:"千禧心碎", icon:"i-clock", count:58,  g:"linear-gradient(135deg,#89f7fe,#66a6ff)" },
-  { id:"6651233748", name:"经典摇滚", icon:"i-bolt", count:30,  g:"linear-gradient(135deg,#f83600,#f9d423)" },
-  { id:"6753971696", name:"夏日摇滚", icon:"i-flame", count:52,  g:"linear-gradient(135deg,#feada6,#f5efef)" },
-  { id:"6666416916", name:"迷幻民谣", icon:"i-music", count:56,  g:"linear-gradient(135deg,#cdb4db,#8093f1)" },
-  { id:"7681103811", name:"漂流民谣", icon:"i-film", count:58,  g:"linear-gradient(135deg,#d4fc79,#96e6a1)" },
-  { id:"3102272704", name:"House派对", icon:"i-sliders", count:30, g:"linear-gradient(135deg,#f5576c,#f093fb)" },
-  { id:"8596533201", name:"中文说唱", icon:"i-volume", count:58,  g:"linear-gradient(135deg,#434343,#000000)" },
-  { id:"7648200657", name:"真实说唱", icon:"i-bolt", count:69,  g:"linear-gradient(135deg,#4facfe,#00f2fe)" },
+  { id:"2920647537",  name:"华语情歌", icon:"i-heart", count:50,  g:"linear-gradient(135deg,#f43f5e,#fb7185)" },
+  { id:"6845765666",  name:"00年代华语", icon:"i-disc", count:100, g:"linear-gradient(135deg,#4b6cb7,#182848)" },
+  { id:"9838770200",  name:"秋日轻音", icon:"i-music", count:57,  g:"linear-gradient(135deg,#7f7fd5,#91eae4)" },
+  { id:"8466390203",  name:"欧美电音", icon:"i-sliders", count:60,  g:"linear-gradient(135deg,#fc466b,#3f5efb)" },
+  { id:"9199227201",  name:"影视原声", icon:"i-film", count:59,  g:"linear-gradient(135deg,#f59e0b,#fbbf24)" },
+  { id:"12381856640", name:"游戏燃曲", icon:"i-headphone", count:113, g:"linear-gradient(135deg,#11998e,#38ef7d)" },
+  { id:"2811289513",  name:"青春经典", icon:"i-sparkle", count:80,  g:"linear-gradient(135deg,#f6d365,#fda085)" },
+  { id:"6845433364",  name:"重返2000", icon:"i-clock", count:105, g:"linear-gradient(135deg,#a18cd1,#fbc2eb)" },
+  { id:"6845730053",  name:"旧日重现", icon:"i-disc", count:75,  g:"linear-gradient(135deg,#667eea,#764ba2)" },
+  { id:"13498143641", name:"重返2020", icon:"i-flame", count:100, g:"linear-gradient(135deg,#ff9a9e,#fecfef)" },
+  { id:"9260008202",  name:"R&B夜晚", icon:"i-heart", count:49,  g:"linear-gradient(135deg,#30cfd0,#330867)" },
+  { id:"8421570200",  name:"千禧心碎", icon:"i-clock", count:58,  g:"linear-gradient(135deg,#89f7fe,#66a6ff)" },
+  { id:"9161921200",  name:"独立摇滚", icon:"i-bolt", count:59,  g:"linear-gradient(135deg,#f83600,#f9d423)" },
+  { id:"6753971696",  name:"夏日摇滚", icon:"i-flame", count:52,  g:"linear-gradient(135deg,#feada6,#f5efef)" },
+  { id:"6666416916",  name:"迷幻民谣", icon:"i-music", count:56,  g:"linear-gradient(135deg,#cdb4db,#8093f1)" },
+  { id:"7681103811",  name:"人间漂流", icon:"i-film", count:58,  g:"linear-gradient(135deg,#d4fc79,#96e6a1)" },
+  { id:"3102272704",  name:"House派对", icon:"i-sliders", count:30, g:"linear-gradient(135deg,#f5576c,#f093fb)" },
+  { id:"17690329395", name:"华语说唱", icon:"i-volume", count:80,  g:"linear-gradient(135deg,#434343,#000000)" },
+  { id:"7648200657",  name:"真实说唱", icon:"i-bolt", count:69,  g:"linear-gradient(135deg,#4facfe,#00f2fe)" },
   { id:"14428741642", name:"像素游戏音", icon:"i-headphone", count:29, g:"linear-gradient(135deg,#00dbde,#fc00ff)" },
-  { id:"7480824757", name:"深夜独处", icon:"i-clock", count:30,  g:"linear-gradient(135deg,#2c3e50,#4ca1af)" },
-  { id:"2829961453", name:"国风大赏", icon:"i-disc", count:30,  g:"linear-gradient(135deg,#c1440e,#e8b04b)" },
+  { id:"8660958204",  name:"月夜独游", icon:"i-clock", count:47,  g:"linear-gradient(135deg,#2c3e50,#4ca1af)" },
+  { id:"2829961453",  name:"国风大赏", icon:"i-disc", count:30,  g:"linear-gradient(135deg,#c1440e,#e8b04b)" },
   { id:"12528734645", name:"久石让精选", icon:"i-image", count:51, g:"linear-gradient(135deg,#8ec5fc,#e0c3fc)" },
-  { id:"9161316200", name:"动漫轻音", icon:"i-sparkle", count:60, g:"linear-gradient(135deg,#fbc2eb,#a6c1ee)" },
+  { id:"9161316200",  name:"动漫轻音", icon:"i-sparkle", count:60, g:"linear-gradient(135deg,#fbc2eb,#a6c1ee)" },
+  { id:"8295505797",  name:"睡前爵士", icon:"i-headphone", count:80, g:"linear-gradient(135deg,#232526,#414345)" },
+  { id:"2769770419",  name:"浪漫古典", icon:"i-music", count:61,  g:"linear-gradient(135deg,#c9a227,#6b4f1d)" },
+  { id:"5482015402",  name:"金属唱片行", icon:"i-bolt", count:30,  g:"linear-gradient(135deg,#3a1c1c,#0f0f0f)" },
+  { id:"13688738646", name:"乡村流行", icon:"i-disc", count:81,  g:"linear-gradient(135deg,#d1913c,#ffd194)" },
+  { id:"9477560203",  name:"深夜轻音乐", icon:"i-film", count:60,  g:"linear-gradient(135deg,#141e30,#243b55)" },
+  { id:"13591289649", name:"90年代宝岛", icon:"i-sparkle", count:185, g:"linear-gradient(135deg,#ff758c,#ff7eb3)" },
 ];
 /* 图标引用统一走 sprite（设计系统里唯一入口） */
 const iconSvg = (id, size) => `<svg class="i i-${size||18}"><use href="#${id}"/></svg>`;
@@ -361,7 +401,9 @@ async function loadChart(idx){
       songListEl.innerHTML = `<div class="empty"><svg class="i i-38"><use href="#i-refresh"/></svg><p>加载失败，请稍后重试</p><button class="btn-retry" id="retryBtn">重新加载</button></div>`;
       const rb = document.getElementById("retryBtn");
       if(rb) rb.addEventListener("click", ()=>loadChart(idx));
-      toast("网络加载失败，已自动重试");
+      toast("网络加载失败，已自动检测各通道");
+      // 失败时自动跑一次通道自检，结果写入播放队列面板，便于判断是限流还是断网
+      runDiag();
     }
   }
 }
@@ -410,11 +452,11 @@ function renderSongs(){
         <div class="thumb">${s.pic?`<img src="${thumbUrl(s.pic,foliaOn?270:120)}" alt="" loading="lazy" decoding="async"/>`:""}</div>
         <div class="meta">
           <div class="title">${s.name}</div>
-          <div class="artist">${s.artist}</div>
+          <div class="artist"><span class="row-artist" data-art="${i}">${s.artist}</span></div>
         </div>
       </div>
-      <div class="album">—</div>
-      <div class="duration">--:--</div>
+      <div class="album">${s.album?`<span class="row-album" data-alb="${i}" title="查看专辑">${s.album}</span>`:"—"}</div>
+      <div class="duration">${s.dur?fmt(s.dur/1000):"--:--"}</div>
       <div class="more">
         <button class="fav-btn row-fav ${favSet.has(key(s))?'on':''}" data-fav="${i}" title="收藏">
           <svg class="i i-15"><use href="#i-heart"/></svg>
@@ -430,6 +472,21 @@ function renderSongs(){
       ev.stopPropagation();
       const s = songs[+el.dataset.fav];
       if(s) toggleFav(s);
+    });
+  });
+  // 歌手 / 专辑可点击进入对应页面
+  songListEl.querySelectorAll(".row-artist").forEach(el=>{
+    el.addEventListener("click",(ev)=>{
+      ev.stopPropagation();
+      const s = songs[+el.dataset.art];
+      if(s) openArtist(s.artistId, s.artist);
+    });
+  });
+  songListEl.querySelectorAll(".row-album").forEach(el=>{
+    el.addEventListener("click",(ev)=>{
+      ev.stopPropagation();
+      const s = songs[+el.dataset.alb];
+      if(s) openAlbum(s.albumId, s.album);
     });
   });
   if(window.WALL) window.WALL.onSongs();
@@ -487,6 +544,8 @@ async function playSong(idx){
   updatePFav();
   setMediaSession(s);
   document.title = `▶ ${s.name} - ${s.artist} | 云音播放器`;
+  // 深链同步：地址栏始终对应当前歌曲，可直接复制分享
+  if(s.id){ try{ history.replaceState(null, "", "#/song/" + s.id); }catch(e){} }
   if(currentQueueOpen) renderQueue();
   // update row highlight
   document.querySelectorAll(".song-row").forEach((e,i)=>e.classList.toggle("playing",i===idx));
@@ -1255,6 +1314,9 @@ const ppCmtCount = document.getElementById("ppCmtCount");
 const ppPaneLrc = document.getElementById("ppPaneLrc");
 const ppPaneCmt = document.getElementById("ppPaneCmt");
 const ppCmtList = document.getElementById("ppCmtList");
+const ppTabSimi = document.getElementById("ppTabSimi");
+const ppPaneSimi = document.getElementById("ppPaneSimi");
+const ppSimiList = document.getElementById("ppSimiList");
 const ppClose = document.getElementById("ppClose");
 const ppOpenBtn = document.getElementById("ppOpenBtn");
 const ppFlip = document.getElementById("ppFlip");
@@ -1452,15 +1514,17 @@ function syncParticles(){
 }
 
 // 评论多通道：injahow 评论接口（有额度时最快约200ms）+ 直连 + 多个公共代理并行竞速，6秒超时快速失败
-const CMT_PROXIES = [
+const CMT_PROXIES = [];
+if(WORKER) CMT_PROXIES.push({u:(t)=>`${WORKER}/?url=${encodeURIComponent(t)}`, p:(d)=>d});
+CMT_PROXIES.push(
   {u:(t)=>t, p:(d)=>d},
   {u:(t)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(t)}`, p:(d)=>d},
   {u:(t)=>`https://cors.eu.org/${t}`, p:(d)=>d},
   {u:(t)=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(t)}`, p:(d)=>d},
   {u:(t)=>`https://api.allorigins.win/get?url=${encodeURIComponent(t)}`, p:(d)=>JSON.parse((typeof d==="string"?JSON.parse(d):d).contents)},
   {u:(t)=>`https://api.cors.lol/?url=${encodeURIComponent(t)}`, p:(d)=>d},
-  {u:(t)=>`https://test.cors.workers.dev/?${t}`, p:(d)=>d},
-];
+  {u:(t)=>`https://test.cors.workers.dev/?${t}`, p:(d)=>d}
+);
 async function fetchTimeout(url, ms){
   const ctl = new AbortController();
   const timer = setTimeout(()=>ctl.abort(), ms||8000);
@@ -1496,11 +1560,39 @@ if(pInfoEl){
   pInfoEl.addEventListener("click",openPlayPage);
 }
 bindLrcClick(ppLrcTrack);
+// 播放页歌手/专辑名可点击进入详情
+ppArtist.addEventListener("click",()=>{
+  const s = songs[currentIdx];
+  if(s) openArtist(s.artistId, s.artist);
+});
+pbAlbum.addEventListener("click",()=>{
+  const s = songs[currentIdx];
+  if(s && s.albumId) openAlbum(s.albumId, s.album);
+  else if(s && s.album) toast("暂无这张专辑的详情");
+});
+/* 分享本曲：手机调系统分享，桌面复制深链 */
+document.getElementById("ppShare").addEventListener("click", async ()=>{
+  const s = songs[currentIdx];
+  if(!s || !s.id){ toast("当前没有可分享的歌曲"); return; }
+  const url = location.origin + location.pathname + "#/song/" + s.id;
+  try{
+    if(navigator.share && window.matchMedia("(pointer:coarse)").matches){
+      await navigator.share({title:s.name, text:`${s.name} - ${s.artist}`, url});
+    }else{
+      await navigator.clipboard.writeText(url);
+      toast("链接已复制，可分享给好友");
+    }
+  }catch(e){
+    prompt("复制这段链接分享：", url);
+  }
+});
 
 function updatePlayPage(s){
   ppTitle.textContent = s.name;
   ppArtist.textContent = s.artist;
-  ppCover.src = s.pic || "";
+  ppArtist.dataset.artistId = s.artistId || "";
+  ppArtist.title = "点击查看歌手";
+  ppCover.src = thumbUrl(s.pic, 500);
   // 背景用小尺寸图再模糊（90px 高斯模糊下无损画质差异），显著降低低端机 GPU 负担
   ppBgImg.src = s.pic ? s.pic.replace(/\?.*$/,"") + "?param=350y350" : "";
   // 弥散光晕按歌曲换色
@@ -1511,6 +1603,7 @@ function updatePlayPage(s){
   pbName.textContent = s.name;
   pbArtist2.textContent = s.artist;
   pbAlbum.textContent = s.album || "—";
+  pbAlbum.dataset.albumId = s.albumId || "";
   pbDur.textContent = s.dur ? fmt(s.dur/1000) : "—";
   pbFav.textContent = favs.some(f=>f.id===s.id) ? "已收藏" : "未收藏";
   pbCmt.textContent = cmtCache.has(s.id) ? cmtLike(cmtCache.get(s.id).total||0)+" 条" : "加载中…";
@@ -1550,7 +1643,7 @@ function startLongPress(){
 }
 function endLongPress(){
   clearTimeout(lpTimer);
-  if(lpActive){ lpActive = false; audio.playbackRate = 1; }
+  if(lpActive){ lpActive = false; audio.playbackRate = baseRate(); }
 }
 if(discWrap){
   // 触屏
@@ -1594,11 +1687,16 @@ function switchPpTab(t){
   ppTab = t;
   ppTabLrc.classList.toggle("active",t==="lrc");
   ppTabCmt.classList.toggle("active",t==="cmt");
+  ppTabSimi.classList.toggle("active",t==="simi");
   ppPaneLrc.classList.toggle("hidden",t!=="lrc");
   ppPaneCmt.classList.toggle("hidden",t!=="cmt");
+  ppPaneSimi.classList.toggle("hidden",t!=="simi");
   if(t==="cmt"){
     const s = songs[currentIdx];
     if(s) loadComments(s);
+  }else if(t==="simi"){
+    const s = songs[currentIdx];
+    if(s) loadSimi(s);
   }else{
     // 切回歌词时重新定位当前行
     lastLrcIdx = -1;
@@ -1607,6 +1705,7 @@ function switchPpTab(t){
 }
 ppTabLrc.addEventListener("click",()=>switchPpTab("lrc"));
 ppTabCmt.addEventListener("click",()=>switchPpTab("cmt"));
+ppTabSimi.addEventListener("click",()=>switchPpTab("simi"));
 
 /* ---------- Comments (NetEase) ---------- */
 function escHtml(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
@@ -1716,6 +1815,143 @@ async function loadComments(song){
   }
 }
 
+/* ---------- 相似歌曲 / 歌手页 / 专辑页 ---------- */
+/* 官方接口曲目 → 内部歌曲结构（统一处理封面尺寸、歌手与专辑 id） */
+function mapTrack(t){
+  const ar = (t.ar && t.ar[0]) || (t.artists && t.artists[0]) || null;
+  const al = t.al || t.album || null;
+  return {
+    id:String(t.id||""),
+    name:t.name||"未知歌曲",
+    artist:(t.ar||t.artists||[]).map(a=>a.name).join(" / ")||"未知歌手",
+    pic: al && al.picUrl ? (al.picUrl+"?param=200y200").replace(/^http:/,"https:") : "",
+    url:"", lrc:"",
+    album:(al && al.name)||"",
+    dur:t.dt||t.duration||0,
+    artistId: ar ? String(ar.id||"") : "",
+    albumId: al ? String(al.id||"") : ""
+  };
+}
+/* 通用的"列表视图"切换（歌手页/专辑页共用） */
+function showListView(title, desc, list, tag){
+  listMode = tag==="ALBUM" ? "album" : "artist";
+  fmMode = false; currentChart = null; currentIdx = -1;
+  setActiveNav(null); clearBtn.style.display = "none";
+  chartTitle.textContent = title || "";
+  chartDesc.textContent = desc || "";
+  chartTag.textContent = tag || "";
+  chartTag.style.display = "";
+  chartCover.innerHTML = iconSvg(tag==="ARTIST"?"i-headphone":"i-disc",38);
+  chartCover.style.background = "linear-gradient(135deg,#e0e7ff,#c7d2fe)";
+  songs = list || [];
+  if(songs.length) renderSongs();
+}
+async function openArtist(id, name){
+  let aid = String(id||"");
+  if(!aid && name){
+    const d = await netJSON(`/api/search/get?s=${encodeURIComponent(name)}&type=100&limit=1`, 9000);
+    const a = d && d.result && d.result.artists && d.result.artists[0];
+    aid = a ? String(a.id) : "";
+  }
+  if(!aid){ toast("未找到这位歌手"); return; }
+  closePlayPage();
+  showListView(name||"歌手", "热门歌曲", [], "ARTIST");
+  songListEl.innerHTML = skelRows(10);
+  const d = await netJSON(`/api/artist/${aid}`, 12000);
+  const hot = d && Array.isArray(d.hotSongs) ? d.hotSongs.map(mapTrack) : null;
+  if(!hot || !hot.length){
+    songListEl.innerHTML = `<div class="empty"><p>歌手信息加载失败，请稍后重试</p></div>`;
+    toast("歌手页加载失败");
+    return;
+  }
+  chartDesc.textContent = `热门 ${hot.length} 首`;
+  songs = hot;
+  renderSongs();
+}
+async function openAlbum(id, name){
+  if(!id){ toast("缺少专辑信息"); return; }
+  closePlayPage();
+  showListView(name||"专辑", "整张专辑", [], "ALBUM");
+  songListEl.innerHTML = skelRows(10);
+  const d = await netJSON(`/api/v1/album/${id}`, 12000);
+  const arr = d && Array.isArray(d.songs) ? d.songs.map(mapTrack) : null;
+  if(!arr || !arr.length){
+    songListEl.innerHTML = `<div class="empty"><p>专辑加载失败，请稍后重试</p></div>`;
+    return;
+  }
+  chartDesc.textContent = `${arr.length} 首`;
+  songs = arr;
+  renderSongs();
+}
+/* 相似推荐：基于当前歌曲的相似歌曲（官方 simiSong 接口） */
+const simiCache = new Map();
+let simiSongId = null;
+async function loadSimi(song){
+  if(!song || !song.id){
+    ppSimiList.innerHTML = '<div class="lrc-empty">暂无相似推荐</div>';
+    return;
+  }
+  if(simiSongId === song.id && ppSimiList.dataset.done==="1") return;
+  if(simiCache.has(song.id)){
+    simiSongId = song.id;
+    renderSimi(song.id, simiCache.get(song.id));
+    return;
+  }
+  simiSongId = song.id;
+  ppSimiList.dataset.done = "0";
+  ppSimiList.innerHTML = '<div class="lrc-empty">正在寻找相似歌曲…</div>';
+  const d = await netJSON(`/api/v1/discovery/simiSong?songid=${song.id}&limit=20`, 10000);
+  const arr = d && Array.isArray(d.songs) ? d.songs : null;
+  if(simiSongId !== song.id) return;
+  if(!arr || !arr.length){
+    ppSimiList.innerHTML = '<div class="lrc-empty" id="ppSimiRetry" style="cursor:pointer;text-decoration:underline dotted">相似推荐加载失败，点击重试</div>';
+    const b = document.getElementById("ppSimiRetry");
+    if(b) b.addEventListener("click", ()=>{ simiCache.delete(song.id); loadSimi(song); });
+    return;
+  }
+  const list = arr.map(mapTrack);
+  simiCache.set(song.id, list);
+  renderSimi(song.id, list);
+}
+function renderSimi(songId, list){
+  if(simiSongId !== songId) return;
+  ppSimiList.innerHTML = `<div class="simi-head"><span>根据这首歌推荐</span><button id="ppSimiAll">全部加入队列</button></div>` +
+    list.map((s,i)=>`<div class="simi-item" data-i="${i}">
+      <div class="simi-idx">${i+1}</div>
+      <div class="simi-meta"><b>${escHtml(s.name)}</b><span>${escHtml(s.artist)}</span></div>
+      <button class="simi-add" data-add="${i}" title="加入队列"><svg class="i i-14"><use href="#i-plus"/></svg></button>
+    </div>`).join("");
+  ppSimiList.dataset.done = "1";
+  ppSimiList.querySelectorAll(".simi-item").forEach(el=>{
+    el.addEventListener("click",()=>{
+      const s = list[+el.dataset.i];
+      if(!s) return;
+      const at = currentIdx>=0 ? currentIdx+1 : songs.length;
+      songs.splice(at,0,{...s});
+      renderSongs();
+      playSong(at);
+    });
+  });
+  ppSimiList.querySelectorAll(".simi-add").forEach(el=>{
+    el.addEventListener("click", ev=>{
+      ev.stopPropagation();
+      const s = list[+el.dataset.add];
+      if(!s) return;
+      songs.push({...s});
+      renderSongs();
+      if(currentQueueOpen) renderQueue();
+      toast("已加入队列：" + s.name);
+    });
+  });
+  const all = document.getElementById("ppSimiAll");
+  if(all) all.addEventListener("click", ()=>{
+    list.forEach(s=>songs.push({...s}));
+    renderSongs();
+    if(currentQueueOpen) renderQueue();
+    toast(`已加入 ${list.length} 首到队列`);
+  });
+}
+
 /* ---------- Drawer tools: quality / sleep / backup ---------- */
 const qBr = document.getElementById("qBr");
 const qSleep = document.getElementById("qSleep");
@@ -1755,6 +1991,16 @@ qSleep.addEventListener("change", ()=>{
     qSleep.value = "0";
   }, m*60000);
   toast(`将在 ${m} 分钟后暂停播放`);
+});
+// 播放倍速（持久化；长按 2 倍速松手后回到该值）
+const qRate = document.getElementById("qRate");
+function baseRate(){ return parseFloat(store.get('yy_rate', 1)) || 1; }
+qRate.value = String(baseRate());
+audio.playbackRate = baseRate();
+qRate.addEventListener("change", ()=>{
+  store.set('yy_rate', qRate.value);
+  audio.playbackRate = parseFloat(qRate.value) || 1;
+  toast("播放速度 " + qRate.selectedOptions[0].text);
 });
 // 收藏备份
 qFavExport.addEventListener("click", ()=>{
@@ -2984,12 +3230,36 @@ if('serviceWorker' in navigator && location.protocol==='https:'){
   }
 }
 
+/* ---------- 单曲深链：player.html#/song/123456 或 ?song=123456 ---------- */
+function deepLinkSongId(){
+  const q = new URLSearchParams(location.search).get("song");
+  if(q && /^\d+$/.test(q)) return q;
+  const m = /#\/song\/(\d+)/.exec(location.hash || "");
+  return m ? m[1] : "";
+}
+async function openSongById(id){
+  try{
+    const d = await netJSON(`/api/v1/song/detail?ids=%5B${id}%5D`, 9000);
+    const t = d && d.songs && d.songs[0];
+    if(!t){ toast("未找到这首歌，已返回榜单"); return false; }
+    const s = mapTrack(t);
+    showListView(s.name, "分享的单曲", [s], "SONG");
+    playSong(0);
+    return true;
+  }catch(e){ return false; }
+}
+
 /* ---------- Init ---------- */
 renderCharts();
 renderWall();
-// 启动：恢复上次的视图模式（列表/沉浸），再加载默认榜单
+// 启动：恢复上次的视图模式（列表/沉浸），深链优先，否则加载默认榜单
 applyView();
-loadChart(0);
+const __deepId = deepLinkSongId();
+if(__deepId){
+  openSongById(__deepId).then(ok=>{ if(!ok) loadChart(0); });
+}else{
+  loadChart(0);
+}
 
 /* ---------- 网络自检诊断 ----------
    在播放队列面板中一键检测各音源通道可用性，定位"加载失败"是接口限流还是网络问题 */

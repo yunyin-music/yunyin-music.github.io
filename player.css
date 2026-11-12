@@ -630,6 +630,35 @@
   .pp-cmt .ft{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;color:var(--text-3)}
   .pp-cmt .like{display:inline-flex;align-items:center;gap:4px}
 
+  /* ---------- 相似推荐列表 ---------- */
+  .simi-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 4px 8px;font-size:12px;color:var(--text-3)}
+  .simi-head button{
+    border:1px solid var(--border);background:var(--glass-2);color:var(--text-2);
+    font-size:12px;padding:5px 11px;border-radius:999px;cursor:pointer;font-family:inherit;
+    transition:color .2s,border-color .2s;
+  }
+  .simi-head button:hover{color:var(--text);border-color:var(--accent)}
+  .simi-item{
+    display:flex;align-items:center;gap:12px;padding:10px 6px;border-radius:10px;cursor:pointer;
+    border-bottom:1px solid rgba(255,255,255,.05);
+  }
+  .simi-item:last-child{border-bottom:none}
+  .simi-item:hover{background:var(--glass-2)}
+  .simi-idx{width:18px;text-align:center;font-size:12px;color:var(--text-3);flex-shrink:0}
+  .simi-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+  .simi-meta b{font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .simi-meta span{font-size:11.5px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .simi-add{
+    width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:none;
+    color:var(--text-3);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  }
+  .simi-add:hover{color:var(--accent);border-color:var(--accent)}
+  /* 歌曲行内的歌手/专辑可点击 */
+  .song-row .row-artist,.song-row .row-album{cursor:pointer}
+  .song-row .row-artist:hover,.song-row .row-album:hover{color:var(--accent);text-decoration:underline dotted;text-underline-offset:3px}
+  #ppArtist{cursor:pointer}
+  #pbAlbum{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+
   /* ---------- 移动端顶栏（桌面隐藏；必须位于 responsive 段之前） ---------- */
   .m-top{
     display:none;position:fixed;top:0;left:0;right:0;z-index:52;

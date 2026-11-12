@@ -309,6 +309,15 @@
         <option value="90">90 分钟</option>
       </select>
     </label>
+    <label>倍速
+      <select id="qRate" aria-label="播放倍速">
+        <option value="0.75">0.75x</option>
+        <option value="1" selected>1.0x</option>
+        <option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option>
+        <option value="2">2.0x</option>
+      </select>
+    </label>
   </div>
   <div class="q-backup">
     <button id="qFavExport" aria-label="导出收藏到文件"><svg class="i i-14"><use href="#i-download"/></svg> 导出收藏</button>
@@ -338,6 +347,9 @@
       </button>
       <button class="pp-act" id="ppPoster" title="生成歌词分享海报" aria-label="歌词海报">
         <svg class="i i-17"><use href="#i-image"/></svg>
+      </button>
+      <button class="pp-act" id="ppShare" title="复制本曲链接" aria-label="复制本曲链接">
+        <svg class="i i-17"><use href="#i-share"/></svg>
       </button>
       <button class="pp-act" id="ppEq" title="音效" aria-label="切换音效"><svg class="i i-17"><use href="#i-sliders"/></svg></button>
     </div>
@@ -379,6 +391,7 @@
       <div class="pp-tabs">
         <button class="pp-tab active" id="ppTabLrc">歌词</button>
         <button class="pp-tab" id="ppTabCmt">评论<span class="cnt" id="ppCmtCount"></span></button>
+        <button class="pp-tab" id="ppTabSimi">相似</button>
       </div>
       <div class="pp-pane" id="ppPaneLrc">
         <div class="pp-lyrics">
@@ -387,6 +400,9 @@
       </div>
       <div class="pp-pane hidden" id="ppPaneCmt">
         <div class="pp-cmt-scroll" id="ppCmtList"><div class="lrc-empty">选择一首歌曲查看评论</div></div>
+      </div>
+      <div class="pp-pane hidden" id="ppPaneSimi">
+        <div class="pp-cmt-scroll" id="ppSimiList"><div class="lrc-empty">选择一首歌曲查看相似推荐</div></div>
       </div>
     </div>
   </div>
