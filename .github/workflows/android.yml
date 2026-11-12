@@ -27,11 +27,6 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME"
           ls "$ANDROID_HOME/platforms" | tail -5
 
-      - name: Prepare launcher icon
-        run: |
-          mkdir -p app-android/app/src/main/res/drawable
-          cp icon-192.png app-android/app/src/main/res/drawable/ic_launcher.png
-
       - uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: "8.9"
