@@ -2,20 +2,37 @@ plugins {
     id 'com.android.application'
 }
 
+def ksFile = rootProject.file("../.keys/yunyin.jks")
+
 android {
     namespace 'io.github.yunyin.music'
     compileSdk 34
+
+    signingConfigs {
+        stable {
+            if (ksFile.exists()) {
+                storeFile ksFile
+                storePassword "yunyin123"
+                keyAlias "yunyin"
+                keyPassword "yunyin123"
+            }
+        }
+    }
 
     defaultConfig {
         applicationId "io.github.yunyin.music"
         minSdk 23
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
     }
 
     buildTypes {
+        debug {
+            if (ksFile.exists()) signingConfig signingConfigs.stable
+        }
         release {
+            if (ksFile.exists()) signingConfig signingConfigs.stable
             minifyEnabled false
         }
     }

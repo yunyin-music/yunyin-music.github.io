@@ -31,6 +31,23 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Ensure stable signing keystore
+        run: |
+          if [ ! -f .keys/yunyin.jks ]; then
+            mkdir -p .keys
+            keytool -genkeypair -v -keystore .keys/yunyin.jks \
+              -storepass yunyin123 -keypass yunyin123 -alias yunyin \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Yunyin, O=Yunyin, C=CN"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .keys/yunyin.jks
+            git commit -m "chore: add stable signing keystore"
+            git push
+          else
+            echo "keystore exists"
+          fi
+
       - name: Build debug APK
         working-directory: app-android
         run: gradle assembleDebug --no-daemon --stacktrace
@@ -39,6 +56,7 @@ jobs:
         run: |
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | tail -1)
           "$BT/aapt" dump badging app-android/app/build/outputs/apk/debug/app-debug.apk | head -12
+          "$BT/apksigner" verify --print-certs app-android/app/build/outputs/apk/debug/app-debug.apk | head -4
 
       - name: Rename APK
         run: cp app-android/app/build/outputs/apk/debug/app-debug.apk yunyin.apk
