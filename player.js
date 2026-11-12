@@ -3251,7 +3251,13 @@ async function openSongById(id){
   try{
     const d = await netJSON(`/api/v1/song/detail?ids=%5B${id}%5D`, 9000);
     const t = d && d.songs && d.songs[0];
-    if(!t){ toast("未找到这首歌，已返回榜单"); return false; }
+    if(!t){
+      // 详情接口不可用（代理限流）时仍尝试直接播放，保证分享链接可用
+      const s = { id:String(id), name:"网易云歌曲 "+id, artist:"未知歌手", pic:"", url:"", lrc:"", album:"", dur:0 };
+      showListView("分享的单曲", "歌曲信息获取失败，正在尝试直接播放", [s], "SONG");
+      playSong(0);
+      return true;
+    }
     const s = mapTrack(t);
     showListView(s.name, "分享的单曲", [s], "SONG");
     playSong(0);
