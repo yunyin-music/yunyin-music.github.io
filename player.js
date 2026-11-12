@@ -544,8 +544,8 @@ async function playSong(idx){
   updatePFav();
   setMediaSession(s);
   document.title = `▶ ${s.name} - ${s.artist} | 云音播放器`;
-  // 深链同步：地址栏始终对应当前歌曲，可直接复制分享
-  if(s.id){ try{ history.replaceState(null, "", "#/song/" + s.id); }catch(e){} }
+  // 深链同步：地址栏始终对应当前歌曲，可直接复制分享（注意：本地变量 history 会遮蔽 window.history）
+  if(s.id){ try{ window.history.replaceState(null, "", "#/song/" + s.id); }catch(e){} }
   if(currentQueueOpen) renderQueue();
   // update row highlight
   document.querySelectorAll(".song-row").forEach((e,i)=>e.classList.toggle("playing",i===idx));
@@ -1904,6 +1904,16 @@ async function loadSimi(song){
   const arr = d && Array.isArray(d.songs) ? d.songs : null;
   if(simiSongId !== song.id) return;
   if(!arr || !arr.length){
+    // 接口全部限流时的本地兜底：同歌手 / 同专辑曲目（无需网络）
+    const local = songs.filter(x=>x!==song && (
+      (song.artistId && x.artistId===song.artistId) ||
+      (song.albumId && x.albumId===song.albumId) ||
+      (!song.artistId && x.artist && x.artist===song.artist)
+    )).slice(0,20);
+    if(local.length){
+      renderSimi(song.id, local, "同歌手 / 同专辑推荐（接口繁忙）");
+      return;
+    }
     ppSimiList.innerHTML = '<div class="lrc-empty" id="ppSimiRetry" style="cursor:pointer;text-decoration:underline dotted">相似推荐加载失败，点击重试</div>';
     const b = document.getElementById("ppSimiRetry");
     if(b) b.addEventListener("click", ()=>{ simiCache.delete(song.id); loadSimi(song); });
@@ -1913,9 +1923,9 @@ async function loadSimi(song){
   simiCache.set(song.id, list);
   renderSimi(song.id, list);
 }
-function renderSimi(songId, list){
+function renderSimi(songId, list, note){
   if(simiSongId !== songId) return;
-  ppSimiList.innerHTML = `<div class="simi-head"><span>根据这首歌推荐</span><button id="ppSimiAll">全部加入队列</button></div>` +
+  ppSimiList.innerHTML = `<div class="simi-head"><span>${escHtml(note||"根据这首歌推荐")}</span><button id="ppSimiAll">全部加入队列</button></div>` +
     list.map((s,i)=>`<div class="simi-item" data-i="${i}">
       <div class="simi-idx">${i+1}</div>
       <div class="simi-meta"><b>${escHtml(s.name)}</b><span>${escHtml(s.artist)}</span></div>
