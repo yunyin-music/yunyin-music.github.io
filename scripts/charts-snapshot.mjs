@@ -25,17 +25,18 @@ function extractBlock(src, name) {
 }
 
 function mapTrack(t) {
-  const ar = (t.ar && t.ar[0]) || null;
-  const al = t.al || null;
+  // 两套接口字段不同：playlist/detail 用 ar/al，song/detail 用 artists/album
+  const ar = (t.ar && t.ar[0]) || (t.artists && t.artists[0]) || null;
+  const al = t.al || t.album || null;
   return {
     id: String(t.id),
     name: t.name || "未知歌曲",
-    artist: (t.ar || []).map((a) => a.name).join(" / ") || "未知歌手",
+    artist: (t.ar || t.artists || []).map((a) => a.name).join(" / ") || "未知歌手",
     pic: al && al.picUrl ? `${al.picUrl}?param=200y200`.replace(/^http:/, "https:") : "",
     url: "",
     lrc: "",
     album: (al && al.name) || "",
-    dur: t.dt || 0,
+    dur: t.dt || t.duration || 0,
     artistId: ar ? String(ar.id || "") : "",
     albumId: al ? String(al.id || "") : "",
   };
