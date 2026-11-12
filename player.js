@@ -17,9 +17,13 @@ NET_PROXIES.push(
 );
 async function netJSON(path, ms){
   const target = NET + path;
+  // 总时限：多个代理串行，任一卡住也不能把整页拖到几十秒
+  const end = Date.now() + (ms || 15000);
   for(const px of NET_PROXIES){
+    const left = end - Date.now();
+    if(left < 300) break;
     try{
-      const r = await fetchTimeout(px(target), ms||15000);
+      const r = await fetchTimeout(px(target), Math.min(left, 8000));
       if(!r || !r.ok) continue;
       const d = await r.json();
       if(d && (d.code===200 || d.status===200 || d.playlist || d.result || d.data || d.songs || d.lrc || d.hotSongs || d.artist || d.album)) return d;
@@ -316,6 +320,7 @@ const qMask = document.getElementById("qMask");
 let currentChart = null;
 let songs = [];
 let currentIdx = -1;
+let nowPlaying = null; // 独立于列表的"正在播放"引用：切换视图后仍能取到当前歌曲
 let playMode = 0; // 0: list loop, 1: single loop, 2: shuffle
 const modeIcons = [
   iconSvg("i-repeat"),   // 列表循环
@@ -451,11 +456,11 @@ function renderSongs(){
       <div class="song-info">
         <div class="thumb">${s.pic?`<img src="${thumbUrl(s.pic,foliaOn?270:120)}" alt="" loading="lazy" decoding="async"/>`:""}</div>
         <div class="meta">
-          <div class="title">${s.name}</div>
-          <div class="artist"><span class="row-artist" data-art="${i}">${s.artist}</span></div>
+          <div class="title">${escHtml(s.name)}</div>
+          <div class="artist"><span class="row-artist" data-art="${i}">${escHtml(s.artist)}</span></div>
         </div>
       </div>
-      <div class="album">${s.album?`<span class="row-album" data-alb="${i}" title="查看专辑">${s.album}</span>`:"—"}</div>
+      <div class="album">${s.album?`<span class="row-album" data-alb="${i}">${escHtml(s.album)}</span>`:"—"}</div>
       <div class="duration">${s.dur?fmt(s.dur/1000):"--:--"}</div>
       <div class="more">
         <button class="fav-btn row-fav ${favSet.has(key(s))?'on':''}" data-fav="${i}" title="收藏">
@@ -533,6 +538,7 @@ async function playSong(idx){
   currentIdx = idx;
   try{ navigator.vibrate && navigator.vibrate(8); }catch(_){} // 汽水式切歌触感
   const s = songs[idx];
+  nowPlaying = s;
   if(s.pic) pageTintFromCover(s.pic); // 主界面氛围色跟随当前封面主色
   pTitle.textContent = s.name;
   pArtist.textContent = s.artist;
@@ -553,7 +559,7 @@ async function playSong(idx){
   // load lyrics
   loadLyrics(s);
   // 评论预取：播放即后台加载，打开播放页时秒开（延迟1.2s避开音源解析高峰）
-  setTimeout(()=>{ if(songs[currentIdx]===s) loadComments(s); }, 1200);
+  setTimeout(()=>{ if(nowPlaying===s) loadComments(s); }, 1200);
   // scroll into view
   const row = songListEl.querySelector(`.song-row[data-idx="${idx}"]`);
   if(row) row.scrollIntoView({behavior:"smooth",block:"nearest"});
@@ -566,6 +572,8 @@ async function playSong(idx){
     return;
   }
   audio.src = url;
+  // 换源后浏览器会把 playbackRate 重置为 defaultPlaybackRate，需重新应用用户设定的倍速
+  audio.playbackRate = baseRate();
   audio.play().then(()=>{
     failStreak = 0;
     s._retried = 0;
@@ -1038,13 +1046,15 @@ function toggleFav(s){
     const s2 = songs[+el.dataset.fav];
     if(s2) el.classList.toggle("on", favSet.has(key(s2)));
   });
+  // 正在浏览收藏列表时，取消收藏要让该行立即消失
+  if(listMode==='favs') showFavs();
 }
 function updatePFav(){
-  const s = songs[currentIdx];
+  const s = songs[currentIdx] || nowPlaying;
   pFavBtn.classList.toggle("on", !!(s && favSet.has(key(s))));
 }
 pFavBtn.addEventListener("click",()=>{
-  const s = songs[currentIdx];
+  const s = songs[currentIdx] || nowPlaying;
   if(!s){ toast("先播放一首歌吧"); return; }
   toggleFav(s);
 });
@@ -1562,17 +1572,17 @@ if(pInfoEl){
 bindLrcClick(ppLrcTrack);
 // 播放页歌手/专辑名可点击进入详情
 ppArtist.addEventListener("click",()=>{
-  const s = songs[currentIdx];
+  const s = songs[currentIdx] || nowPlaying;
   if(s) openArtist(s.artistId, s.artist);
 });
 pbAlbum.addEventListener("click",()=>{
-  const s = songs[currentIdx];
+  const s = songs[currentIdx] || nowPlaying;
   if(s && s.albumId) openAlbum(s.albumId, s.album);
   else if(s && s.album) toast("暂无这张专辑的详情");
 });
 /* 分享本曲：手机调系统分享，桌面复制深链 */
 document.getElementById("ppShare").addEventListener("click", async ()=>{
-  const s = songs[currentIdx];
+  const s = songs[currentIdx] || nowPlaying;
   if(!s || !s.id){ toast("当前没有可分享的歌曲"); return; }
   const url = location.origin + location.pathname + "#/song/" + s.id;
   try{
@@ -1692,10 +1702,10 @@ function switchPpTab(t){
   ppPaneCmt.classList.toggle("hidden",t!=="cmt");
   ppPaneSimi.classList.toggle("hidden",t!=="simi");
   if(t==="cmt"){
-    const s = songs[currentIdx];
+    const s = songs[currentIdx] || nowPlaying;
     if(s) loadComments(s);
   }else if(t==="simi"){
-    const s = songs[currentIdx];
+    const s = songs[currentIdx] || nowPlaying;
     if(s) loadSimi(s);
   }else{
     // 切回歌词时重新定位当前行
@@ -2006,10 +2016,13 @@ qSleep.addEventListener("change", ()=>{
 const qRate = document.getElementById("qRate");
 function baseRate(){ return parseFloat(store.get('yy_rate', 1)) || 1; }
 qRate.value = String(baseRate());
+audio.defaultPlaybackRate = baseRate();
 audio.playbackRate = baseRate();
 qRate.addEventListener("change", ()=>{
   store.set('yy_rate', qRate.value);
-  audio.playbackRate = parseFloat(qRate.value) || 1;
+  const r = parseFloat(qRate.value) || 1;
+  audio.defaultPlaybackRate = r;
+  audio.playbackRate = r;
   toast("播放速度 " + qRate.selectedOptions[0].text);
 });
 // 收藏备份
