@@ -3276,6 +3276,11 @@ if(__deepId){
 }else{
   loadChart(0);
 }
+// 页面已打开时粘贴/修改 hash 也能直接跳到对应歌曲（replaceState 不触发本事件，无循环风险）
+window.addEventListener("hashchange", ()=>{
+  const id = deepLinkSongId();
+  if(id) openSongById(id);
+});
 
 /* ---------- 网络自检诊断 ----------
    在播放队列面板中一键检测各音源通道可用性，定位"加载失败"是接口限流还是网络问题 */
